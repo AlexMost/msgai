@@ -10,7 +10,7 @@ msgid "Hello"
 msgstr ""
 
 msgid "World"
-msgstr "World"
+msgstr "Світ"
 `);
 
   const runResult = spawnSync(process.execPath, [cliPath, '--dry-run', tempPo.poFilePath], {

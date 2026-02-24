@@ -5,8 +5,8 @@ import path from 'node:path';
 const DEFAULT_PO_HEADER = `
 msgid ""
 msgstr ""
-"Language: en\\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\\n"
+"Language: uk\\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\\n"
 "Content-Type: text/plain; charset=UTF-8\\n"
 `.trim();
 

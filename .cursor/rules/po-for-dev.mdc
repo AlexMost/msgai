@@ -8,3 +8,4 @@ alwaysApply: true
   - `Language: uk`
   - Ukrainian plural formula: `nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);`
 - **Translations:** Keep `msgstr` values in English so devs can read them during development.
+- Language in msgstr must be ukrainian

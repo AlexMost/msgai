@@ -8,7 +8,7 @@ msgid "Hello"
 msgstr ""
 
 msgid "World"
-msgstr "World"
+msgstr "Світ"
 `);
   const result = getUntranslatedMsgids(tempPo.poContent);
 
