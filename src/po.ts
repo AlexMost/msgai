@@ -30,3 +30,23 @@ export function getUntranslatedMsgidsFromFile(poFilePath: string): string[] {
   const poContent = fs.readFileSync(poFilePath, 'utf8');
   return getUntranslatedMsgids(poContent);
 }
+
+export function getLanguageFromPoContent(poContent: string): string | undefined {
+  const parsedPo = po.parse(Buffer.from(poContent, 'utf8'));
+  return parsedPo.headers?.['Language'];
+}
+
+export function getLanguageFromFile(poFilePath: string): string | undefined {
+  const poContent = fs.readFileSync(poFilePath, 'utf8');
+  return getLanguageFromPoContent(poContent);
+}
+
+export function getPluralFormsFromPoContent(poContent: string): string | undefined {
+  const parsedPo = po.parse(Buffer.from(poContent, 'utf8'));
+  return parsedPo.headers?.['Plural-Forms'];
+}
+
+export function getPluralFormsFromFile(poFilePath: string): string | undefined {
+  const poContent = fs.readFileSync(poFilePath, 'utf8');
+  return getPluralFormsFromPoContent(poContent);
+}
