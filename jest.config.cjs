@@ -1,7 +1,18 @@
 /** @type {import('jest').Config} */
 module.exports = {
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/dist/test'],
-  testMatch: ['**/*.test.js'],
+  roots: ['<rootDir>/test'],
+  testMatch: ['**/*.test.ts'],
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.json',
+      },
+    ],
+    '^.+\\.[cm]?js$': 'babel-jest',
+  },
+  transformIgnorePatterns: ['/node_modules/(?!(gettext-parser)/)'],
   clearMocks: true,
 };
