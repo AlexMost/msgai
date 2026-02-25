@@ -17,7 +17,6 @@ This file defines working instructions for AI coding agents in this repository.
 - Install deps: `npm install`
 - Build: `npm run build`
 - Test: `npm test`
-- Watch tests: `npm run test:watch`
 - Format: `npm run format`
 - Check formatting: `npm run lint:format`
 
@@ -28,13 +27,12 @@ This file defines working instructions for AI coding agents in this repository.
 - Preserve current CLI UX:
   - Usage line: `Usage: msgai <file.po> [--dry-run]`
   - Exit code `0` on success, non-zero on error paths.
-- For parser logic in `src/po.ts`, keep behavior deterministic and side-effect free where possible.
 - Avoid introducing new dependencies unless necessary.
 
 ## Testing Expectations
 
 - For functional changes, update or add tests in `test/`.
-- At minimum, run `npm test` after meaningful code edits.
+- At minimum, run `npm run format`, `npm run lint:format` and `npm test` after meaningful code edits.
 - For CLI behavior updates, prefer integration-style tests similar to `test/cli.dry-run.test.ts`.
 
 ## Agent Workflow

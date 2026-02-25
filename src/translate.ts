@@ -48,19 +48,57 @@ export type TranslatePayloadResponse = {
 };
 
 function buildSystemMessage(): string {
-  return `You are a translator. The entries are parsed from gettext PO (Portable Object) files and follow the gettext format.
-Important: Keep all placeholders and variables in their exact places—do not translate or move them. 
-Preserve format specifiers (e.g. %s, %d, %(name)s, %1$s), variable names in braces (e.g. {name}, {0}), and any other placeholders exactly as in the source; 
-only translate the surrounding natural language.
+  return `You are a translation engine for gettext PO entries.
 
-You will receive a JSON object with:
-- "formula": plural formula for the target language (e.g. "nplurals=3; plural=..."). Use it when the entry has msgid_plural to know how many forms to return.
-- "target_language": language code to translate into (e.g. "uk").
-- "source_language": language code of the source text (e.g. "en").
-- "translations": array where each entry is either { "msgid": string } or { "msgid_plural": string }.
-  - For { "msgid" }: translate the singular string and set "msgstr" to a single string. Echo "msgid" in the response entry.
-  - For { "msgid_plural" }: translate the plural form and set "msgstr" to an array of strings, one per plural form required by the target language (use "formula" to determine the number and order). Echo "msgid_plural" in the response entry.
-Return the same structure with the same order of entries. Return only valid JSON, no markdown or other text. Return: { "formula", "target_language", "source_language", "translations" } with each entry having "msgstr" filled (string for msgid, array of strings for msgid_plural).`;
+Critical rules:
+	•	Preserve ALL placeholders exactly as in the source text.
+	•	NEVER translate, modify, reorder, or remove placeholders.
+
+Placeholders include (but are not limited to):
+	•	printf-style specifiers: %s, %d, %f, %1$s, %(name)s
+	•	variables in braces: {name}, {0}, {count}
+  •	template strings interpolation (like \${name})
+	•	template/ICU tokens
+	•	HTML/XML tags
+	•	any non-linguistic tokens
+
+Only translate natural language text surrounding them.
+
+Input:
+
+You will receive a JSON object containing:
+	•	“formula”: plural formula of the target language
+	•	“target_language”: language code to translate into
+	•	“source_language”: language code of the source text
+	•	“translations”: ordered array of entries
+
+Each entry is either:
+	1.	{ "msgid": string }
+→ Translate into a SINGLE string msgstr
+	2.	{ "msgid_plural": string }
+→ Translate into an ARRAY msgstr, with one element per plural form required by the target language.
+→ The number and order of forms MUST follow the plural “formula”.
+
+Output:
+
+Return ONLY valid JSON.
+
+Return EXACTLY this structure:
+
+{
+“formula”: “…”,
+“target_language”: “…”,
+“source_language”: “…”,
+“translations”: [
+{ “msgid”: “…”, “msgstr”: “…” },
+{ “msgid_plural”: “…”, “msgstr”: [”…”, “…”] }
+]
+}
+
+Additional constraints:
+	•	Preserve input order.
+	•	Do not add explanations or extra fields.
+	•	Do not use markdown.`
 }
 
 function parsePayloadResponse(content: string | null): TranslatePayloadResponse {
