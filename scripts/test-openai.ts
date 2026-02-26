@@ -4,7 +4,7 @@
  * Requires OPENAI_API_KEY in environment or .env.
  */
 
-import { translateStrings } from '../src/translate';
+import { resolveApiKey, translateStrings } from '../src/translate';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -19,7 +19,10 @@ async function main(): Promise<void> {
   console.log('  target_language:', targetLanguage);
   console.log('  source_language:', sourceLanguage);
 
-  const result = await translateStrings(entries, targetLanguage, { sourceLanguage });
+  const result = await translateStrings(entries, targetLanguage, {
+    sourceLanguage,
+    apiKey: resolveApiKey(),
+  });
 
   console.log('Result:', result);
   console.log('Success: OpenAI translate call completed.');

@@ -75,7 +75,7 @@ function parseArgs(argv: string[]): CliArgs {
   }
 }
 
-export async function runTranslate(poFilePath: string, apiKey?: string): Promise<number> {
+export async function runTranslate(poFilePath: string, apiKey: string): Promise<number> {
   try {
     const parsedPo = parsePoFromFile(poFilePath);
     const { entries, keys } = getEntriesToTranslate(parsedPo);
@@ -85,15 +85,7 @@ export async function runTranslate(poFilePath: string, apiKey?: string): Promise
       return 0;
     }
 
-    try {
-      resolveApiKey(apiKey);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(message.replace('pass apiKey in options', 'pass --api-key'));
-      return 1;
-    }
-
-    const targetLanguage = getLanguageFromFile(poFilePath) ?? 'uk';
+    const targetLanguage = getLanguageFromFile(poFilePath) ?? 'en';
     const formula = getPluralFormsFromFile(poFilePath) ?? '';
     const options = { apiKey, sourceLanguage: 'en' as const, formula };
 
@@ -134,7 +126,15 @@ function main(argv: string[]): number | undefined {
   }
 
   if (!args.dryRun) {
-    runTranslate(args.poFilePath, args.apiKey).then((code) => process.exit(code));
+    let resultApiKey;
+    try {
+      resultApiKey = resolveApiKey(args.apiKey);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message.replace('pass apiKey in options', 'pass --api-key'));
+      return 1;
+    }
+    runTranslate(args.poFilePath, resultApiKey).then((code) => process.exit(code));
     return undefined as unknown as number;
   }
 

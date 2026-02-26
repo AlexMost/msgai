@@ -18,7 +18,7 @@ export function resolveApiKey(apiKey?: string): string {
 }
 
 export type TranslateOptions = {
-  apiKey?: string;
+  apiKey: string;
   client?: OpenAI;
   model?: string;
 };
@@ -134,7 +134,7 @@ function parsePayloadResponse(content: string | null): TranslatePayloadResponse 
 
 export async function translatePayload(
   payload: TranslatePayloadRequest,
-  options?: TranslateOptions
+  options: TranslateOptions
 ): Promise<TranslatePayloadResponse> {
   if (payload.translations.length === 0) {
     return { ...payload, translations: [] };
@@ -143,7 +143,7 @@ export async function translatePayload(
   const client =
     options?.client ??
     new OpenAI({
-      apiKey: resolveApiKey(options?.apiKey),
+      apiKey: options.apiKey,
     });
   const model = options?.model ?? DEFAULT_MODEL;
 
@@ -176,7 +176,7 @@ export type PoEntryOutput =
 export async function translateItems(
   items: TranslateItem[],
   targetLanguage: string,
-  options?: TranslateOptions & { sourceLanguage?: string; formula?: string }
+  options: TranslateOptions & { sourceLanguage?: string; formula?: string }
 ): Promise<TranslationResult[]> {
   if (items.length === 0) return [];
 
@@ -194,7 +194,7 @@ export async function translateItems(
 export async function translateStrings(
   entries: PoEntryInput[],
   targetLanguage: string,
-  options?: TranslateOptions & { sourceLanguage?: string; formula?: string }
+  options: TranslateOptions & { sourceLanguage?: string; formula?: string }
 ): Promise<PoEntryOutput[]> {
   if (entries.length === 0) return [];
 
