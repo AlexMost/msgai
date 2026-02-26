@@ -87,6 +87,7 @@ export async function runTranslate(poFilePath: string, apiKey: string): Promise<
       return 0;
     }
 
+    const phraseCount = entries.length;
     const targetLanguage = getLanguage(parsedPo) ?? 'en';
     const formula = getPluralForms(parsedPo) ?? '';
     const options = { apiKey, sourceLanguage: 'en' as const, formula };
@@ -94,7 +95,17 @@ export async function runTranslate(poFilePath: string, apiKey: string): Promise<
     const allResults: Awaited<ReturnType<typeof translateStrings>> = [];
     for (let i = 0; i < entries.length; i += TRANSLATE_BATCH_SIZE) {
       const batch = entries.slice(i, i + TRANSLATE_BATCH_SIZE);
+      const batchNum = Math.floor(i / TRANSLATE_BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(entries.length / TRANSLATE_BATCH_SIZE);
+      console.log(`Translating batch ${batchNum}/${totalBatches} (${batch.length} phrase${batch.length === 1 ? '' : 's'})...`);
       const batchResults = await translateStrings(batch, targetLanguage, options);
+      for (const r of batchResults) {
+        if (typeof r.msgstr === 'string') {
+          console.log(`  ${r.msgid} => ${r.msgstr}`);
+        } else {
+          console.log(`  ${r.msgid_plural} (plural) => ${r.msgstr.join(' | ')}`);
+        }
+      }
       allResults.push(...batchResults);
     }
 
