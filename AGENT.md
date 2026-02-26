@@ -6,7 +6,7 @@ This file defines working instructions for AI coding agents in this repository.
 
 - Project: `msgai`
 - Type: Node.js CLI (TypeScript, CommonJS build output)
-- Main goal (current MVP): read `.po` files and list untranslated `msgid` entries
+- Main goal: automatically translate all untranslated strings in gettext (`.po`) files using AI (LLM); the tool finds empty `msgstr` entries, sends them to an LLM (OpenAI), and writes translations back to the file.
 - Entry point: `src/cli.ts` (compiled to `dist/src/cli.js`)
 - PO parsing logic: `src/po.ts`
 - Tests: Jest (`test/**/*.test.ts`)
@@ -34,6 +34,7 @@ This file defines working instructions for AI coding agents in this repository.
 
 - **Unit tests** (`test/`): Must not trigger the real API. Use mocks (e.g. mock `translate` or the OpenAI client) so `npm test` runs without network or API keys.
 - **Integration tests** (`test-integration/`): Must trigger the real API (no mocks). They run the full flow and may require `OPENAI_API_KEY`; see `npm run test:integration`.
+- **Every exported function** must have at least one unit test (in `test/`). When adding or changing exports, add or update the corresponding tests.
 - For functional changes, update or add tests in `test/`.
 - At minimum, run `npm run format`, `npm run lint:format` and `npm test` after meaningful code edits.
 - For CLI behavior updates, prefer integration-style tests similar to `test/cli.dry-run.test.ts`.

@@ -1,14 +1,13 @@
 # msgai
 
-`msgai` is a Node.js CLI utility for working with gettext (`.po`) files.
-Current MVP behavior focuses on reading `.po` files and listing untranslated entries.
+`msgai` is a Node.js CLI that **automatically translates all untranslated strings in gettext (`.po`) files using AI (LLM)**. It reads your `.po` file, detects entries with empty or missing translations, sends them to an LLM (OpenAI), and writes the translations back into the file.
 
 ## Usage
 
 ### Commands
 
-- `msgai <file.po>`: base CLI flow (MVP placeholder behavior).
-- `msgai <file.po> --dry-run`: prints all untranslated `msgid` values from the `.po` file.
+- `msgai <file.po>`: translates all untranslated `msgid` / `msgid_plural` entries in the file using AI and updates the `.po` file in place.
+- `msgai <file.po> --dry-run`: only lists untranslated `msgid` values (no API calls, no file changes).
 - `msgai --help`: prints command usage.
 
 ### API key (for translation)

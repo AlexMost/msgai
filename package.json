@@ -1,7 +1,7 @@
 {
   "name": "msgai",
   "version": "1.0.0",
-  "description": "CLI for gettext auto-translation workflows",
+  "description": "CLI that automatically translates all untranslated strings in gettext (.po) files using AI (LLM)",
   "main": "dist/src/cli.js",
   "bin": {
     "msgai": "dist/src/cli.js"
