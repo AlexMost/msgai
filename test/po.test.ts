@@ -1,14 +1,12 @@
 import { test, expect } from '@jest/globals';
 import {
   getUntranslatedMsgids,
-  getUntranslatedMsgidsFromFile,
-  getLanguageFromPoContent,
-  getLanguageFromFile,
-  getPluralFormsFromPoContent,
-  parsePoFromFile,
+  getLanguage,
+  getPluralForms,
+  parsePoContent,
   getEntriesToTranslate,
   applyTranslations,
-  writePoFile,
+  compilePo,
 } from '../src/po';
 import fs from 'node:fs';
 import { getTmpPo } from './test-utils/getTmpPo';
@@ -22,51 +20,42 @@ msgstr ""
 msgid "World"
 msgstr "Світ"
 `);
-  const result = getUntranslatedMsgids(tempPo.poContent);
-
+  const parsed = parsePoContent(tempPo.poContent);
+  const result = getUntranslatedMsgids(parsed);
   tempPo.cleanup();
-
   expect(result).toEqual(['Hello']);
 });
 
-test('getUntranslatedMsgidsFromFile reads and parses po file', () => {
+test('getUntranslatedMsgids with parsed from file returns untranslated msgids', () => {
   const tempPo = getTmpPo(`
 msgid "Hello"
 msgstr ""
 `);
-
-  const result = getUntranslatedMsgidsFromFile(tempPo.poFilePath);
+  const content = fs.readFileSync(tempPo.poFilePath, 'utf8');
+  const parsed = parsePoContent(content);
+  const result = getUntranslatedMsgids(parsed);
   tempPo.cleanup();
-
   expect(result).toEqual(['Hello']);
 });
 
-test('getLanguageFromPoContent returns language from PO header', () => {
+test('getLanguage returns language from parsed PO headers', () => {
   const tempPo = getTmpPo(`
 msgid "Hello"
 msgstr ""
 `);
-  const result = getLanguageFromPoContent(tempPo.poContent);
+  const parsed = parsePoContent(tempPo.poContent);
+  const result = getLanguage(parsed);
   tempPo.cleanup();
   expect(result).toBe('uk');
 });
 
-test('getLanguageFromFile returns language from PO file', () => {
+test('getPluralForms returns Plural-Forms from parsed PO headers', () => {
   const tempPo = getTmpPo(`
 msgid "Hello"
 msgstr ""
 `);
-  const result = getLanguageFromFile(tempPo.poFilePath);
-  tempPo.cleanup();
-  expect(result).toBe('uk');
-});
-
-test('getPluralFormsFromPoContent returns Plural-Forms from PO header', () => {
-  const tempPo = getTmpPo(`
-msgid "Hello"
-msgstr ""
-`);
-  const result = getPluralFormsFromPoContent(tempPo.poContent);
+  const parsed = parsePoContent(tempPo.poContent);
+  const result = getPluralForms(parsed);
   tempPo.cleanup();
   expect(result).toMatch(/nplurals=3/);
   expect(result).toMatch(/plural=/);
@@ -80,7 +69,7 @@ msgstr "Привіт"
 msgid "World"
 msgstr "Світ"
 `);
-  const parsed = parsePoFromFile(tempPo.poFilePath);
+  const parsed = parsePoContent(tempPo.poContent);
   const { entries, keys } = getEntriesToTranslate(parsed);
   tempPo.cleanup();
   expect(entries).toHaveLength(0);
@@ -92,7 +81,7 @@ test('getEntriesToTranslate returns one entry and key for single untranslated si
 msgid "Hello"
 msgstr ""
 `);
-  const parsed = parsePoFromFile(tempPo.poFilePath);
+  const parsed = parsePoContent(tempPo.poContent);
   const { entries, keys } = getEntriesToTranslate(parsed);
   tempPo.cleanup();
   expect(entries).toHaveLength(1);
@@ -112,7 +101,7 @@ msgstr ""
 msgid "Bye"
 msgstr "Бувай"
 `);
-  const parsed = parsePoFromFile(tempPo.poFilePath);
+  const parsed = parsePoContent(tempPo.poContent);
   const { entries, keys } = getEntriesToTranslate(parsed);
   tempPo.cleanup();
   expect(entries).toHaveLength(2);
@@ -130,7 +119,7 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 `);
-  const parsed = parsePoFromFile(tempPo.poFilePath);
+  const parsed = parsePoContent(tempPo.poContent);
   const { entries, keys } = getEntriesToTranslate(parsed);
   tempPo.cleanup();
   expect(entries).toHaveLength(1);
@@ -192,14 +181,14 @@ msgstr ""
   expect(parsed.translations['']['Hello'].msgstr).toEqual(before);
 });
 
-test('writePoFile round-trips and preserves translated entry', () => {
+test('compilePo round-trips and preserves translated entry', () => {
   const tempPo = getTmpPo(`
 msgid "Hello"
 msgstr "Привіт"
 `);
-  const parsed = parsePoFromFile(tempPo.poFilePath);
+  const parsed = parsePoContent(tempPo.poContent);
   const outPath = tempPo.poFilePath.replace('.po', '-out.po');
-  writePoFile(outPath, parsed);
+  fs.writeFileSync(outPath, compilePo(parsed), undefined);
   const reparsed = po.parse(fs.readFileSync(outPath));
   expect(reparsed.translations['']['Hello'].msgstr).toEqual(['Привіт']);
   tempPo.cleanup();

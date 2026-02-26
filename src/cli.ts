@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import {
-  getUntranslatedMsgidsFromFile,
-  parsePoFromFile,
+  getUntranslatedMsgids,
+  parsePoContent,
   getEntriesToTranslate,
   applyTranslations,
-  writePoFile,
-  getLanguageFromFile,
-  getPluralFormsFromFile,
+  compilePo,
+  getLanguage,
+  getPluralForms,
 } from './po';
 import { resolveApiKey, translateStrings } from './translate';
 
@@ -77,7 +78,8 @@ function parseArgs(argv: string[]): CliArgs {
 
 export async function runTranslate(poFilePath: string, apiKey: string): Promise<number> {
   try {
-    const parsedPo = parsePoFromFile(poFilePath);
+    const poContent = fs.readFileSync(poFilePath, 'utf8');
+    const parsedPo = parsePoContent(poContent);
     const { entries, keys } = getEntriesToTranslate(parsedPo);
 
     if (entries.length === 0) {
@@ -85,8 +87,8 @@ export async function runTranslate(poFilePath: string, apiKey: string): Promise<
       return 0;
     }
 
-    const targetLanguage = getLanguageFromFile(poFilePath) ?? 'en';
-    const formula = getPluralFormsFromFile(poFilePath) ?? '';
+    const targetLanguage = getLanguage(parsedPo) ?? 'en';
+    const formula = getPluralForms(parsedPo) ?? '';
     const options = { apiKey, sourceLanguage: 'en' as const, formula };
 
     const allResults: Awaited<ReturnType<typeof translateStrings>> = [];
@@ -97,7 +99,7 @@ export async function runTranslate(poFilePath: string, apiKey: string): Promise<
     }
 
     applyTranslations(parsedPo, keys, allResults);
-    writePoFile(poFilePath, parsedPo);
+    fs.writeFileSync(poFilePath, compilePo(parsedPo), undefined);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -139,7 +141,9 @@ function main(argv: string[]): number | undefined {
   }
 
   try {
-    const untranslatedMsgids = getUntranslatedMsgidsFromFile(args.poFilePath);
+    const poContent = fs.readFileSync(args.poFilePath, 'utf8');
+    const parsedPo = parsePoContent(poContent);
+    const untranslatedMsgids = getUntranslatedMsgids(parsedPo);
 
     for (const msgid of untranslatedMsgids) {
       console.log(msgid);

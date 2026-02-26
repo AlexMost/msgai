@@ -1,11 +1,9 @@
-import fs from 'node:fs';
 import { po, type GetTextTranslations, type GetTextTranslationRecord } from 'gettext-parser';
 import type { PoEntryInput, PoEntryOutput } from './translate';
 
 export type PoEntryKey = { context: string; msgid: string };
 
-export function getUntranslatedMsgids(poContent: string): string[] {
-  const parsedPo = po.parse(Buffer.from(poContent, 'utf8'));
+export function getUntranslatedMsgids(parsedPo: GetTextTranslations): string[] {
   const untranslatedMsgids: string[] = [];
   const translations: GetTextTranslationRecord = parsedPo.translations;
 
@@ -29,29 +27,12 @@ export function getUntranslatedMsgids(poContent: string): string[] {
   return untranslatedMsgids;
 }
 
-export function getUntranslatedMsgidsFromFile(poFilePath: string): string[] {
-  const poContent = fs.readFileSync(poFilePath, 'utf8');
-  return getUntranslatedMsgids(poContent);
-}
-
-export function getLanguageFromPoContent(poContent: string): string | undefined {
-  const parsedPo = po.parse(Buffer.from(poContent, 'utf8'));
+export function getLanguage(parsedPo: GetTextTranslations): string | undefined {
   return parsedPo.headers?.['Language'];
 }
 
-export function getLanguageFromFile(poFilePath: string): string | undefined {
-  const poContent = fs.readFileSync(poFilePath, 'utf8');
-  return getLanguageFromPoContent(poContent);
-}
-
-export function getPluralFormsFromPoContent(poContent: string): string | undefined {
-  const parsedPo = po.parse(Buffer.from(poContent, 'utf8'));
+export function getPluralForms(parsedPo: GetTextTranslations): string | undefined {
   return parsedPo.headers?.['Plural-Forms'];
-}
-
-export function getPluralFormsFromFile(poFilePath: string): string | undefined {
-  const poContent = fs.readFileSync(poFilePath, 'utf8');
-  return getPluralFormsFromPoContent(poContent);
 }
 
 function isEntryUntranslated(entry: { msgstr: string[] }): boolean {
@@ -63,10 +44,9 @@ function isEntryUntranslated(entry: { msgstr: string[] }): boolean {
 }
 
 /**
- * Parses a .po file and returns the gettext structure.
+ * Parses PO content and returns the gettext structure.
  */
-export function parsePoFromFile(poFilePath: string): GetTextTranslations {
-  const poContent = fs.readFileSync(poFilePath, 'utf8');
+export function parsePoContent(poContent: string): GetTextTranslations {
   return po.parse(Buffer.from(poContent, 'utf8'));
 }
 
@@ -136,9 +116,8 @@ export function applyTranslations(
 }
 
 /**
- * Compiles the parsed PO to a buffer and writes it to the file.
+ * Compiles the parsed PO to a buffer (no file I/O).
  */
-export function writePoFile(poFilePath: string, parsedPo: GetTextTranslations): void {
-  const buffer = po.compile(parsedPo);
-  fs.writeFileSync(poFilePath, buffer, undefined);
+export function compilePo(parsedPo: GetTextTranslations): Buffer {
+  return po.compile(parsedPo);
 }
