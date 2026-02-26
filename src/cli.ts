@@ -13,6 +13,7 @@ import {
   getPluralForms,
 } from './po';
 import { resolveApiKey, translateStrings } from './translate';
+import { validateSourceLang } from './validate-source-lang';
 
 const TRANSLATE_BATCH_SIZE = 15;
 
@@ -21,6 +22,7 @@ type CliArgs = {
   dryRun: boolean;
   help: boolean;
   apiKey?: string;
+  sourceLang?: string;
   error?: string;
 };
 
@@ -28,7 +30,7 @@ function parseArgs(argv: string[]): CliArgs {
   try {
     const parsedArgs = yargs(argv)
       .scriptName('msgai')
-      .usage('Usage: msgai <file.po> [--dry-run] [--api-key KEY]')
+      .usage('Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]')
       .option('dry-run', {
         type: 'boolean',
         default: false,
@@ -36,6 +38,11 @@ function parseArgs(argv: string[]): CliArgs {
       .option('api-key', {
         type: 'string',
         description: 'OpenAI API key (otherwise read from OPENAI_API_KEY env)',
+      })
+      .option('source-lang', {
+        type: 'string',
+        description:
+          'Source language of msgid strings (ISO 639-1 code, e.g. en, uk). If omitted, the model will detect it.',
       })
       .option('help', {
         alias: 'h',
@@ -55,11 +62,18 @@ function parseArgs(argv: string[]): CliArgs {
       .parseSync();
 
     const positionalArgs = parsedArgs._.map(String);
+    const sourceLangRaw = parsedArgs['source-lang'];
+    const sourceLang =
+      sourceLangRaw != null && String(sourceLangRaw).trim() !== ''
+        ? String(sourceLangRaw).trim().toLowerCase()
+        : undefined;
+
     if (positionalArgs.length > 1) {
       return {
         dryRun: Boolean(parsedArgs['dry-run']),
         help: Boolean(parsedArgs.help),
         apiKey: parsedArgs['api-key'],
+        sourceLang,
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
     }
@@ -69,6 +83,7 @@ function parseArgs(argv: string[]): CliArgs {
       dryRun: Boolean(parsedArgs['dry-run']),
       help: Boolean(parsedArgs.help),
       apiKey: parsedArgs['api-key'],
+      sourceLang,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -76,7 +91,11 @@ function parseArgs(argv: string[]): CliArgs {
   }
 }
 
-export async function runTranslate(poFilePath: string, apiKey: string): Promise<number> {
+export async function runTranslate(
+  poFilePath: string,
+  apiKey: string,
+  sourceLang?: string
+): Promise<number> {
   try {
     const poContent = fs.readFileSync(poFilePath, 'utf8');
     const parsedPo = parsePoContent(poContent);
@@ -89,7 +108,7 @@ export async function runTranslate(poFilePath: string, apiKey: string): Promise<
 
     const targetLanguage = getLanguage(parsedPo) ?? 'en';
     const formula = getPluralForms(parsedPo) ?? '';
-    const options = { apiKey, sourceLanguage: 'en' as const, formula };
+    const options = { apiKey, sourceLanguage: sourceLang, formula };
 
     const allResults: Awaited<ReturnType<typeof translateStrings>> = [];
     for (let i = 0; i < entries.length; i += TRANSLATE_BATCH_SIZE) {
@@ -123,18 +142,28 @@ function main(argv: string[]): number | undefined {
 
   if (args.error) {
     console.error(args.error);
-    console.error('Usage: msgai <file.po> [--dry-run] [--api-key KEY]');
+    console.error('Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]');
     return 1;
   }
 
   if (args.help) {
-    console.log('Usage: msgai <file.po> [--dry-run] [--api-key KEY]');
+    console.log('Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]');
     return 0;
   }
 
   if (!args.poFilePath) {
-    console.error('Usage: msgai <file.po> [--dry-run] [--api-key KEY]');
+    console.error('Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]');
     return 1;
+  }
+
+  if (args.sourceLang != null) {
+    try {
+      validateSourceLang(args.sourceLang);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message);
+      return 1;
+    }
   }
 
   if (!args.dryRun) {
@@ -146,7 +175,9 @@ function main(argv: string[]): number | undefined {
       console.error(message.replace('pass apiKey in options', 'pass --api-key'));
       return 1;
     }
-    runTranslate(args.poFilePath, resultApiKey).then((code) => process.exit(code));
+    runTranslate(args.poFilePath, resultApiKey, args.sourceLang).then((code) =>
+      process.exit(code)
+    );
     return undefined as unknown as number;
   }
 

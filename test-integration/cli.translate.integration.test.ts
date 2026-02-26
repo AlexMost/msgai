@@ -12,7 +12,7 @@ msgstr ""
 `);
 
   try {
-    const runResult = spawnSync(process.execPath, [cliPath, tempPo.poFilePath], {
+    const runResult = spawnSync(process.execPath, [cliPath, tempPo.poFilePath, '--source-lang=en'], {
       encoding: 'utf8',
     });
 
