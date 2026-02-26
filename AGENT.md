@@ -17,6 +17,7 @@ This file defines working instructions for AI coding agents in this repository.
 - Install deps: `npm install`
 - Build: `npm run build`
 - Test: `npm test`
+- Integration Test: `npm run test:integration` (Always ask wether to run this test because it uses $ for tokens and checks the whole flow)
 - Format: `npm run format`
 - Check formatting: `npm run lint:format`
 
@@ -31,6 +32,8 @@ This file defines working instructions for AI coding agents in this repository.
 
 ## Testing Expectations
 
+- **Unit tests** (`test/`): Must not trigger the real API. Use mocks (e.g. mock `translate` or the OpenAI client) so `npm test` runs without network or API keys.
+- **Integration tests** (`test-integration/`): Must trigger the real API (no mocks). They run the full flow and may require `OPENAI_API_KEY`; see `npm run test:integration`.
 - For functional changes, update or add tests in `test/`.
 - At minimum, run `npm run format`, `npm run lint:format` and `npm test` after meaningful code edits.
 - For CLI behavior updates, prefer integration-style tests similar to `test/cli.dry-run.test.ts`.

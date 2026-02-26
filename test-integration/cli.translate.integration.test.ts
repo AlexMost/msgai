@@ -22,11 +22,8 @@ msgstr ""
     }
 
     const content = fs.readFileSync(tempPo.poFilePath, 'utf8');
-    // Real API: we only assert the previously empty msgstr was filled (exact text may vary)
-    expect(content).not.toMatch(/msgid "Hello"\s*\nmsgstr ""\s*$/m);
-    const msgstrMatch = content.match(/msgid "Hello"\s*\nmsgstr "([^"]*)"/);
-    expect(msgstrMatch).not.toBeNull();
-    expect(msgstrMatch![1].trim()).not.toBe('');
+    expect(content).toContain('msgstr "Привіт"');
+    expect(content).toMatchSnapshot();
   } finally {
     tempPo.cleanup();
   }

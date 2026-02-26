@@ -2,8 +2,18 @@
 
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
-import { getUntranslatedMsgidsFromFile } from './po';
-import { resolveApiKey } from './translate';
+import {
+  getUntranslatedMsgidsFromFile,
+  parsePoFromFile,
+  getEntriesToTranslate,
+  applyTranslations,
+  writePoFile,
+  getLanguageFromFile,
+  getPluralFormsFromFile,
+} from './po';
+import { resolveApiKey, translateStrings } from './translate';
+
+const TRANSLATE_BATCH_SIZE = 15;
 
 type CliArgs = {
   poFilePath?: string;
@@ -65,7 +75,46 @@ function parseArgs(argv: string[]): CliArgs {
   }
 }
 
-function main(argv: string[]): number {
+export async function runTranslate(poFilePath: string, apiKey?: string): Promise<number> {
+  try {
+    const parsedPo = parsePoFromFile(poFilePath);
+    const { entries, keys } = getEntriesToTranslate(parsedPo);
+
+    if (entries.length === 0) {
+      console.log(`Nothing to translate in ${poFilePath}.`);
+      return 0;
+    }
+
+    try {
+      resolveApiKey(apiKey);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message.replace('pass apiKey in options', 'pass --api-key'));
+      return 1;
+    }
+
+    const targetLanguage = getLanguageFromFile(poFilePath) ?? 'uk';
+    const formula = getPluralFormsFromFile(poFilePath) ?? '';
+    const options = { apiKey, sourceLanguage: 'en' as const, formula };
+
+    const allResults: Awaited<ReturnType<typeof translateStrings>> = [];
+    for (let i = 0; i < entries.length; i += TRANSLATE_BATCH_SIZE) {
+      const batch = entries.slice(i, i + TRANSLATE_BATCH_SIZE);
+      const batchResults = await translateStrings(batch, targetLanguage, options);
+      allResults.push(...batchResults);
+    }
+
+    applyTranslations(parsedPo, keys, allResults);
+    writePoFile(poFilePath, parsedPo);
+    return 0;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to process PO file: ${message}`);
+    return 1;
+  }
+}
+
+function main(argv: string[]): number | undefined {
   const args = parseArgs(argv);
 
   if (args.error) {
@@ -85,15 +134,8 @@ function main(argv: string[]): number {
   }
 
   if (!args.dryRun) {
-    try {
-      resolveApiKey(args.apiKey);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(message.replace('pass apiKey in options', 'pass --api-key'));
-      return 1;
-    }
-    console.log(`[MVP] msgai received file: ${args.poFilePath}`);
-    return 0;
+    runTranslate(args.poFilePath, args.apiKey).then((code) => process.exit(code));
+    return undefined as unknown as number;
   }
 
   try {
@@ -112,4 +154,6 @@ function main(argv: string[]): number {
 }
 
 const exitCode = main(hideBin(process.argv));
-process.exit(exitCode);
+if (typeof exitCode === 'number') {
+  process.exit(exitCode);
+}

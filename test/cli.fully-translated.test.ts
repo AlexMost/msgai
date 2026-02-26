@@ -21,6 +21,6 @@ msgstr "Світ"
 
   expect(runResult.stderr).toBe('');
   expect(runResult.status).toBe(0);
-  expect(runResult.stdout).toContain('[MVP] msgai received file:');
+  expect(runResult.stdout).toContain('Nothing to translate in');
   expect(runResult.stdout).toContain(tempPo.poFilePath);
 });
