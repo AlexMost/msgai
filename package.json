@@ -12,6 +12,7 @@
     "test:integration": "npm run build && jest -c jest.integration.config.cjs",
     "test:watch": "npm run build && jest --watch",
     "format": "prettier --write .",
+    "lint": "eslint .",
     "lint:format": "prettier --check .",
     "script:test-openai": "ts-node scripts/test-openai.ts"
   },
@@ -30,15 +31,18 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-env": "^7.29.0",
+    "@eslint/js": "^10.0.1",
     "@types/gettext-parser": "^9.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.3.0",
     "babel-jest": "^30.2.0",
+    "eslint": "^10.0.2",
     "jest": "^30.2.0",
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
   },
   "dependencies": {
     "dotenv": "^17.3.1",

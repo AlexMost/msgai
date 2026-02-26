@@ -19,6 +19,7 @@ This file defines working instructions for AI coding agents in this repository.
 - Test: `npm test`
 - Integration Test: `npm run test:integration` (Always ask wether to run this test because it uses $ for tokens and checks the whole flow)
 - Format: `npm run format`
+- Lint: `npm run lint` (ESLint, TypeScript recommended)
 - Check formatting: `npm run lint:format`
 
 ## Architecture
@@ -40,7 +41,7 @@ This file defines working instructions for AI coding agents in this repository.
 - **Integration tests** (`test-integration/`): Must trigger the real API (no mocks). They run the full flow and may require `OPENAI_API_KEY`; see `npm run test:integration`.
 - **Every exported function** must have at least one unit test (in `test/`). When adding or changing exports, add or update the corresponding tests.
 - For functional changes, update or add tests in `test/`.
-- At minimum, run `npm run format`, `npm run lint:format` and `npm test` after meaningful code edits.
+- At minimum, run `npm run format`, `npm run lint`, `npm run lint:format` and `npm test` after meaningful code edits.
 - For CLI behavior updates, prefer integration-style tests similar to `test/cli.dry-run.test.ts`.
 
 ## Agent Workflow
@@ -63,5 +64,5 @@ This file defines working instructions for AI coding agents in this repository.
 - [ ] Does the change match the requested behavior?
 - [ ] Are edge cases covered (especially empty/malformed `.po` content and CLI args)?
 - [ ] Were tests updated/added when behavior changed?
-- [ ] Did build/tests pass locally?
+- [ ] Did build, lint, and tests pass locally?
 - [ ] Is the final explanation concise and actionable?

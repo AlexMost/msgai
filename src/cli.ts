@@ -87,7 +87,6 @@ export async function runTranslate(poFilePath: string, apiKey: string): Promise<
       return 0;
     }
 
-    const phraseCount = entries.length;
     const targetLanguage = getLanguage(parsedPo) ?? 'en';
     const formula = getPluralForms(parsedPo) ?? '';
     const options = { apiKey, sourceLanguage: 'en' as const, formula };
