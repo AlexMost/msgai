@@ -3,12 +3,13 @@
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import { getUntranslatedMsgidsFromFile } from './po';
-
+import { resolveApiKey } from './translate';
 
 type CliArgs = {
   poFilePath?: string;
   dryRun: boolean;
   help: boolean;
+  apiKey?: string;
   error?: string;
 };
 
@@ -16,10 +17,14 @@ function parseArgs(argv: string[]): CliArgs {
   try {
     const parsedArgs = yargs(argv)
       .scriptName('msgai')
-      .usage('Usage: msgai <file.po> [--dry-run]')
+      .usage('Usage: msgai <file.po> [--dry-run] [--api-key KEY]')
       .option('dry-run', {
         type: 'boolean',
         default: false,
+      })
+      .option('api-key', {
+        type: 'string',
+        description: 'OpenAI API key (otherwise read from OPENAI_API_KEY env)',
       })
       .option('help', {
         alias: 'h',
@@ -43,6 +48,7 @@ function parseArgs(argv: string[]): CliArgs {
       return {
         dryRun: Boolean(parsedArgs['dry-run']),
         help: Boolean(parsedArgs.help),
+        apiKey: parsedArgs['api-key'],
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
     }
@@ -51,6 +57,7 @@ function parseArgs(argv: string[]): CliArgs {
       poFilePath: positionalArgs[0],
       dryRun: Boolean(parsedArgs['dry-run']),
       help: Boolean(parsedArgs.help),
+      apiKey: parsedArgs['api-key'],
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -63,21 +70,28 @@ function main(argv: string[]): number {
 
   if (args.error) {
     console.error(args.error);
-    console.error('Usage: msgai <file.po> [--dry-run]');
+    console.error('Usage: msgai <file.po> [--dry-run] [--api-key KEY]');
     return 1;
   }
 
   if (args.help) {
-    console.log('Usage: msgai <file.po> [--dry-run]');
+    console.log('Usage: msgai <file.po> [--dry-run] [--api-key KEY]');
     return 0;
   }
 
   if (!args.poFilePath) {
-    console.error('Usage: msgai <file.po> [--dry-run]');
+    console.error('Usage: msgai <file.po> [--dry-run] [--api-key KEY]');
     return 1;
   }
 
   if (!args.dryRun) {
+    try {
+      resolveApiKey(args.apiKey);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message.replace('pass apiKey in options', 'pass --api-key'));
+      return 1;
+    }
     console.log(`[MVP] msgai received file: ${args.poFilePath}`);
     return 0;
   }

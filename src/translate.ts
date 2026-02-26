@@ -9,7 +9,7 @@ function loadEnv(): void {
   dotenvLoaded = true;
 }
 
-function resolveApiKey(apiKey?: string): string {
+export function resolveApiKey(apiKey?: string): string {
   loadEnv();
   if (apiKey != null && apiKey.trim() !== '') return apiKey;
   const env = process.env['OPENAI_API_KEY'];

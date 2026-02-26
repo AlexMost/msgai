@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && jest",
+    "test:integration": "npm run build && jest -c jest.integration.config.cjs",
     "test:watch": "npm run build && jest --watch",
     "format": "prettier --write .",
     "lint:format": "prettier --check .",
