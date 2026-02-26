@@ -21,6 +21,10 @@ This file defines working instructions for AI coding agents in this repository.
 - Format: `npm run format`
 - Check formatting: `npm run lint:format`
 
+## Architecture
+
+- **Side effects in the CLI only**: All side effects (reading environment variables, reading or writing files, network calls triggered by the CLI) should happen in `cli.ts` or be explicitly invoked from there with data already read (e.g. API key, file contents). Other modules (`po.ts`, `translate.ts`, etc.) should be as pure as possible: accept inputs as arguments and return results, without reading `process.env` or performing file I/O themselves. This keeps core logic testable and predictable.
+
 ## Code Conventions
 
 - Keep changes focused and minimal; avoid broad refactors unless requested.
