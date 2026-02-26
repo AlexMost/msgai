@@ -7,9 +7,9 @@ This file defines working instructions for AI coding agents in this repository.
 - Project: `msgai`
 - Type: Node.js CLI (TypeScript, CommonJS build output)
 - Main goal: automatically translate all untranslated strings in gettext (`.po`) files using AI (LLM); the tool finds empty `msgstr` entries, sends them to an LLM (OpenAI), and writes translations back to the file.
-- Entry point: `src/cli.ts` (compiled to `dist/src/cli.js`)
+- Entry point: `src/cli/index.ts` (compiled to `dist/src/cli/index.js`)
 - PO parsing logic: `src/po.ts`
-- Tests: Jest (`test/**/*.test.ts`)
+- Tests: Jest (`test/**/*.test.ts`). CLI tests live under `test/cli/` (e.g. `test/cli/*.test.ts`).
 
 ## Environment and Commands
 
@@ -24,7 +24,9 @@ This file defines working instructions for AI coding agents in this repository.
 
 ## Architecture
 
-- **Side effects in the CLI only**: All side effects (reading environment variables, reading or writing files, network calls triggered by the CLI) should happen in `cli.ts` or be explicitly invoked from there with data already read (e.g. API key, file contents). Other modules (`po.ts`, `translate.ts`, etc.) should be as pure as possible: accept inputs as arguments and return results, without reading `process.env` or performing file I/O themselves. This keeps core logic testable and predictable.
+- **Side effects in the CLI folder**: Side effects (reading environment variables, reading or writing files, network calls triggered by the CLI) are welcome inside the `cli` folder (e.g. `cli/index.ts`, `cli/runTranslate.ts`). The rest of the codebase (`po.ts`, `translate.ts`, etc.) should stay pure: accept inputs as arguments and return results, without reading `process.env` or performing file I/O themselves. This keeps core logic testable and predictable.
+- **`cli/index.ts`** is responsible for argument parsing and calling the appropriate command. It should not contain business logic or validation beyond parsing and help/error handling.
+- **Argument validation** is done inside the appropriate command in the `cli` folder (e.g. the translate command in `cli/runTranslate.ts` validates `poFilePath`, `sourceLang`, `apiKey`), not in `index.ts`.
 
 ## Code Conventions
 
@@ -42,7 +44,7 @@ This file defines working instructions for AI coding agents in this repository.
 - **Every exported function** must have at least one unit test (in `test/`). When adding or changing exports, add or update the corresponding tests.
 - For functional changes, update or add tests in `test/`.
 - At minimum, run `npm run format`, `npm run lint`, `npm run lint:format` and `npm test` after meaningful code edits.
-- For CLI behavior updates, prefer integration-style tests similar to `test/cli.dry-run.test.ts`.
+- For CLI behavior updates, prefer integration-style tests similar to `test/cli/dry-run.test.ts`.
 
 ## Agent Workflow
 

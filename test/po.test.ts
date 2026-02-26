@@ -147,8 +147,8 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 `,
-      'utf8'
-    )
+      'utf8',
+    ),
   );
   const keys = [
     { context: '', msgid: 'Hello' },
@@ -173,8 +173,8 @@ msgstr ""
 msgid "Hello"
 msgstr ""
 `,
-      'utf8'
-    )
+      'utf8',
+    ),
   );
   const before = parsed.translations['']['Hello'].msgstr.slice();
   applyTranslations(parsed, [{ context: '', msgid: 'Hello' }], []);

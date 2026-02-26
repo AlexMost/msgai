@@ -4,7 +4,7 @@ import { validateSourceLang } from '../src/validate-source-lang';
 test('validateSourceLang throws for invalid ISO code with doc link in message', () => {
   expect(() => validateSourceLang('zzz')).toThrow(/not a known ISO language code/i);
   expect(() => validateSourceLang('zzz')).toThrow(
-    /https:\/\/en\.wikipedia\.org\/wiki\/List_of_ISO_639_language_codes/
+    /https:\/\/en\.wikipedia\.org\/wiki\/List_of_ISO_639_language_codes/,
   );
 });
 

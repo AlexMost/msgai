@@ -37,10 +37,7 @@ export function getPluralForms(parsedPo: GetTextTranslations): string | undefine
 
 function isEntryUntranslated(entry: { msgstr: string[] }): boolean {
   const msgstr = Array.isArray(entry.msgstr) ? entry.msgstr : [];
-  return (
-    msgstr.length === 0 ||
-    msgstr.every((s) => typeof s !== 'string' || s.trim() === '')
-  );
+  return msgstr.length === 0 || msgstr.every((s) => typeof s !== 'string' || s.trim() === '');
 }
 
 /**
@@ -96,7 +93,7 @@ export function getEntriesToTranslate(parsedPo: GetTextTranslations): {
 export function applyTranslations(
   parsedPo: GetTextTranslations,
   keys: PoEntryKey[],
-  results: PoEntryOutput[]
+  results: PoEntryOutput[],
 ): void {
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];

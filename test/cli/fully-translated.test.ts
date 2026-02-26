@@ -1,10 +1,10 @@
 import { test, expect } from '@jest/globals';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { getTmpPo } from './test-utils/getTmpPo';
+import { getTmpPo } from '../test-utils/getTmpPo';
 
 test('CLI without --dry-run and fully translated file exits 0 (no API needed)', () => {
-  const cliPath = path.resolve(process.cwd(), 'dist/src/cli.js');
+  const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
   const tempPo = getTmpPo(`
 msgid "Hello"
 msgstr "Привіт"

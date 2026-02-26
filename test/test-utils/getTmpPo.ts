@@ -20,7 +20,11 @@ function withDefaultHeader(poContent: string): string {
   return `${DEFAULT_PO_HEADER}\n\n${trimmedContent}`;
 }
 
-export function getTmpPo(poContent: string): { poFilePath: string; poContent: string; cleanup: () => void } {
+export function getTmpPo(poContent: string): {
+  poFilePath: string;
+  poContent: string;
+  cleanup: () => void;
+} {
   const tempDirPath = fs.mkdtempSync(path.join(os.tmpdir(), 'msgai-po-test-'));
   const poFilePath = path.join(tempDirPath, 'messages.po');
   const normalizedPoContent = withDefaultHeader(poContent);

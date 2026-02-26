@@ -5,16 +5,20 @@ import path from 'node:path';
 import { getTmpPo } from '../test/test-utils/getTmpPo';
 
 test('CLI without --dry-run calls OpenAI and updates .po file with translated strings', () => {
-  const cliPath = path.resolve(process.cwd(), 'dist/src/cli.js');
+  const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
   const tempPo = getTmpPo(`
 msgid "Hello"
 msgstr ""
 `);
 
   try {
-    const runResult = spawnSync(process.execPath, [cliPath, tempPo.poFilePath, '--source-lang=en'], {
-      encoding: 'utf8',
-    });
+    const runResult = spawnSync(
+      process.execPath,
+      [cliPath, tempPo.poFilePath, '--source-lang=en'],
+      {
+        encoding: 'utf8',
+      },
+    );
 
     expect(runResult.status).toBe(0);
     if (runResult.stderr) {
@@ -30,7 +34,7 @@ msgstr ""
 });
 
 test('CLI without --dry-run exits with error when OPENAI_API_KEY is not set', () => {
-  const cliPath = path.resolve(process.cwd(), 'dist/src/cli.js');
+  const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
   const tempPo = getTmpPo(`
 msgid "Hello"
 msgstr ""

@@ -14,7 +14,9 @@ export function resolveApiKey(apiKey?: string): string {
   if (apiKey != null && apiKey.trim() !== '') return apiKey;
   const env = process.env['OPENAI_API_KEY'];
   if (env != null && env.trim() !== '') return env;
-  throw new Error('OpenAI API key not set. Set OPENAI_API_KEY in the environment or pass apiKey in options.');
+  throw new Error(
+    'OpenAI API key not set. Set OPENAI_API_KEY in the environment or pass apiKey in options.',
+  );
 }
 
 export type TranslateOptions = {
@@ -29,7 +31,9 @@ const DEFAULT_MODEL = 'gpt-4o';
 export type TranslateRequestEntry = { msgid: string } | { msgid_plural: string };
 
 /** Response entry: same keys as request plus msgstr. For msgid → msgstr is string; for msgid_plural → msgstr is string[]. */
-export type TranslateResponseEntry = { msgid: string; msgstr: string } | { msgid_plural: string; msgstr: string[] }
+export type TranslateResponseEntry =
+  | { msgid: string; msgstr: string }
+  | { msgid_plural: string; msgstr: string[] };
 
 /** Request payload: translations have only msgid or msgid_plural, no msgstr. */
 export type TranslatePayloadRequest = {
@@ -98,7 +102,7 @@ Return EXACTLY this structure:
 Additional constraints:
 	•	Preserve input order.
 	•	Do not add explanations or extra fields.
-	•	Do not use markdown.`
+	•	Do not use markdown.`;
 }
 
 function parsePayloadResponse(content: string | null): TranslatePayloadResponse {
@@ -112,7 +116,9 @@ function parsePayloadResponse(content: string | null): TranslatePayloadResponse 
     throw new Error(`OpenAI response is not valid JSON: ${content.slice(0, 200)}`);
   }
   if (parsed == null || typeof parsed !== 'object' || !('translations' in parsed)) {
-    throw new Error(`OpenAI response must be object with "translations" array: ${content.slice(0, 200)}`);
+    throw new Error(
+      `OpenAI response must be object with "translations" array: ${content.slice(0, 200)}`,
+    );
   }
   const payload = parsed as Record<string, unknown>;
   if (!Array.isArray(payload.translations)) {
@@ -127,14 +133,16 @@ function parsePayloadResponse(content: string | null): TranslatePayloadResponse 
     const msgstr = entry.msgstr;
     if (typeof msgstr === 'string') continue;
     if (Array.isArray(msgstr) && msgstr.every((s): s is string => typeof s === 'string')) continue;
-    throw new Error(`OpenAI response translations[${i}].msgstr must be a string or array of strings`);
+    throw new Error(
+      `OpenAI response translations[${i}].msgstr must be a string or array of strings`,
+    );
   }
   return payload as TranslatePayloadResponse;
 }
 
 export async function translatePayload(
   payload: TranslatePayloadRequest,
-  options: TranslateOptions
+  options: TranslateOptions,
 ): Promise<TranslatePayloadResponse> {
   if (payload.translations.length === 0) {
     return { ...payload, translations: [] };
@@ -176,15 +184,20 @@ export type PoEntryOutput =
 export async function translateItems(
   items: TranslateItem[],
   targetLanguage: string,
-  options: TranslateOptions & { sourceLanguage?: string; formula?: string }
+  options: TranslateOptions & { sourceLanguage?: string; formula?: string },
 ): Promise<TranslationResult[]> {
   if (items.length === 0) return [];
 
   const sourceLanguage = options?.sourceLanguage ?? 'en';
   const formula = options?.formula ?? '';
   const result = await translatePayload(
-    { formula, target_language: targetLanguage, source_language: sourceLanguage, translations: items },
-    options
+    {
+      formula,
+      target_language: targetLanguage,
+      source_language: sourceLanguage,
+      translations: items,
+    },
+    options,
   );
 
   return result.translations.map((t) => t.msgstr);
@@ -194,22 +207,23 @@ export async function translateItems(
 export async function translateStrings(
   entries: PoEntryInput[],
   targetLanguage: string,
-  options: TranslateOptions & { sourceLanguage?: string; formula?: string }
+  options: TranslateOptions & { sourceLanguage?: string; formula?: string },
 ): Promise<PoEntryOutput[]> {
   if (entries.length === 0) return [];
 
   const items: TranslateItem[] = entries.map((e) =>
-    e.msgid_plural != null ? { msgid_plural: e.msgid_plural } : { msgid: e.msgid }
+    e.msgid_plural != null ? { msgid_plural: e.msgid_plural } : { msgid: e.msgid },
   );
   const results = await translateItems(items, targetLanguage, options);
 
   return entries.map((entry, i) => {
     const msgstr = results[i];
     if (entry.msgid_plural != null) {
-      const arr = typeof msgstr === 'string' ? [msgstr] : msgstr ?? [];
+      const arr = typeof msgstr === 'string' ? [msgstr] : (msgstr ?? []);
       return { ...entry, msgstr: arr };
     }
-    const str = typeof msgstr === 'string' ? msgstr : Array.isArray(msgstr) ? msgstr[0] ?? '' : '';
+    const str =
+      typeof msgstr === 'string' ? msgstr : Array.isArray(msgstr) ? (msgstr[0] ?? '') : '';
     return { ...entry, msgstr: str };
   }) as PoEntryOutput[];
 }
