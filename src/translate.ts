@@ -165,6 +165,14 @@ export type TranslateItem = TranslateRequestEntry;
 /** Result per item: string for singular, string[] for plural. */
 export type TranslationResult = string | string[];
 
+/** .po-style entry input: msgid required, msgid_plural optional (for plural forms). */
+export type PoEntryInput = { msgid: string; msgid_plural?: string; msgstr?: string[] };
+
+/** .po-style entry output: same shape as input with msgstr filled (string for singular, string[] for plural). */
+export type PoEntryOutput =
+  | { msgid: string; msgstr: string; msgid_plural?: undefined }
+  | { msgid: string; msgid_plural: string; msgstr: string[] };
+
 export async function translateItems(
   items: TranslateItem[],
   targetLanguage: string,
@@ -182,19 +190,26 @@ export async function translateItems(
   return result.translations.map((t) => t.msgstr);
 }
 
-/** Convenience: translate one string (as msgid) or several (as msgid_plural entries). Returns string for single input, string[] for array. */
+/** Translate .po-style entries. Accepts entries with msgid or msgid_plural, passes them to translateItems, returns same array with msgstr filled. */
 export async function translateStrings(
-  strings: string | string[],
+  entries: PoEntryInput[],
   targetLanguage: string,
   options?: TranslateOptions & { sourceLanguage?: string; formula?: string }
-): Promise<string | string[]> {
-  if (typeof strings === 'string') {
-    const results = await translateItems([{ msgid: strings }], targetLanguage, options);
-    const r = results[0];
-    return typeof r === 'string' ? r : r[0] ?? '';
-  }
-  if (strings.length === 0) return [];
-  const items: TranslateItem[] = strings.map((s) => ({ msgid_plural: s }));
+): Promise<PoEntryOutput[]> {
+  if (entries.length === 0) return [];
+
+  const items: TranslateItem[] = entries.map((e) =>
+    e.msgid_plural != null ? { msgid_plural: e.msgid_plural } : { msgid: e.msgid }
+  );
   const results = await translateItems(items, targetLanguage, options);
-  return results.map((r) => (typeof r === 'string' ? r : r[0] ?? ''));
+
+  return entries.map((entry, i) => {
+    const msgstr = results[i];
+    if (entry.msgid_plural != null) {
+      const arr = typeof msgstr === 'string' ? [msgstr] : msgstr ?? [];
+      return { ...entry, msgstr: arr };
+    }
+    const str = typeof msgstr === 'string' ? msgstr : Array.isArray(msgstr) ? msgstr[0] ?? '' : '';
+    return { ...entry, msgstr: str };
+  }) as PoEntryOutput[];
 }

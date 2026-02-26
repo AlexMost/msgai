@@ -12,14 +12,14 @@ dotenv.config();
 async function main(): Promise<void> {
   const targetLanguage = 'uk';
   const sourceLanguage = 'en';
-  const strings = ['Hello', 'World'];
+  const entries = [{ msgid: 'Hello' }, { msgid: 'World' }];
 
   console.log('Calling OpenAI translate with hardcoded values...');
-  console.log('  strings:', strings);
+  console.log('  entries:', entries);
   console.log('  target_language:', targetLanguage);
   console.log('  source_language:', sourceLanguage);
 
-  const result = await translateStrings(strings, targetLanguage, { sourceLanguage });
+  const result = await translateStrings(entries, targetLanguage, { sourceLanguage });
 
   console.log('Result:', result);
   console.log('Success: OpenAI translate call completed.');

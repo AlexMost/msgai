@@ -43,7 +43,7 @@ test('translatePayload sends request with msgid only and receives response with 
   expect(userJson.translations[1]).toEqual({ msgid: 'World' });
 });
 
-test('translateStrings with string uses msgid and returns string', async () => {
+test('translateStrings with singular entries uses msgid and returns entries with msgstr', async () => {
   const responsePayload = {
     formula: '',
     target_language: 'uk',
@@ -55,21 +55,21 @@ test('translateStrings with string uses msgid and returns string', async () => {
   );
   const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
 
-  const result = await translateStrings('Hello', 'uk', { apiKey: 'test-key', client: mockClient });
+  const result = await translateStrings([{ msgid: 'Hello' }], 'uk', { apiKey: 'test-key', client: mockClient });
 
-  expect(result).toBe('Привіт');
+  expect(result).toEqual([{ msgid: 'Hello', msgstr: 'Привіт' }]);
   const userJson = JSON.parse((createMock.mock.calls[0]?.[0] as { messages: Array<{ content?: string }> }).messages![1].content as string);
   expect(userJson.translations).toEqual([{ msgid: 'Hello' }]);
 });
 
-test('translateStrings with string[] uses msgid_plural and returns string[]', async () => {
+test('translateStrings with plural entries uses msgid_plural and returns entries with msgstr array', async () => {
   const responsePayload = {
     formula: '',
     target_language: 'uk',
     source_language: 'en',
     translations: [
-      { msgid_plural: 'Hello', msgstr: 'Привіт' },
-      { msgid_plural: 'World', msgstr: 'Світ' },
+      { msgid_plural: 'Hello', msgstr: ['Привіт'] },
+      { msgid_plural: 'World', msgstr: ['Світ'] },
     ],
   };
   const createMock = jest.fn<(params: unknown) => Promise<unknown>>().mockResolvedValue(
@@ -77,18 +77,22 @@ test('translateStrings with string[] uses msgid_plural and returns string[]', as
   );
   const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
 
-  const result = await translateStrings(['Hello', 'World'], 'uk', {
-    apiKey: 'test-key',
-    client: mockClient,
-  });
+  const result = await translateStrings(
+    [{ msgid: 'Hello', msgid_plural: 'Hello' }, { msgid: 'World', msgid_plural: 'World' }],
+    'uk',
+    { apiKey: 'test-key', client: mockClient }
+  );
 
-  expect(result).toEqual(['Привіт', 'Світ']);
+  expect(result).toEqual([
+    { msgid: 'Hello', msgid_plural: 'Hello', msgstr: ['Привіт'] },
+    { msgid: 'World', msgid_plural: 'World', msgstr: ['Світ'] },
+  ]);
   const userJson = JSON.parse((createMock.mock.calls[0]?.[0] as { messages: Array<{ content?: string }> }).messages![1].content as string);
   expect(userJson.translations).toEqual([{ msgid_plural: 'Hello' }, { msgid_plural: 'World' }]);
   expect(userJson.target_language).toBe('uk');
 });
 
-test('translateStrings returns empty array for empty input', async () => {
+test('translateStrings returns empty array for empty entries', async () => {
   const createMock = jest.fn();
   const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
 
