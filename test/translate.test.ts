@@ -211,3 +211,65 @@ test('translatePayload request with msgid_plural: response msgstr is array', asy
   );
   expect(userJson.translations[1]).toEqual({ msgid_plural: '%d items' });
 });
+
+test('translatePayload with plural_samples includes them in user message and system message describes sample counts', async () => {
+  const pluralSamples = [
+    { plural: 0, sample: 1 },
+    { plural: 1, sample: 2 },
+    { plural: 2, sample: 5 },
+  ];
+  const payload = {
+    formula: 'nplurals=3; plural=...',
+    target_language: 'uk',
+    source_language: 'en',
+    translations: [{ msgid_plural: '%d items' }],
+    plural_samples: pluralSamples,
+  };
+  const responsePayload = {
+    ...payload,
+    translations: [
+      { msgid_plural: '%d items', msgstr: ['%d елемент', '%d елементи', '%d елементів'] },
+    ],
+  };
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValue(mockCompletion(JSON.stringify(responsePayload)));
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await translatePayload(payload, { apiKey: 'test-key', client: mockClient });
+
+  type CreateParams = { messages: Array<{ role: string; content?: string }> };
+  const params = createMock.mock.calls[0]?.[0] as CreateParams;
+  const userJson = JSON.parse(params.messages![1].content as string);
+  expect(userJson.plural_samples).toEqual(pluralSamples);
+  expect(params.messages![0].content as string).toMatch(/plural_samples|sample/);
+});
+
+test('translateStrings with pluralSamples option passes plural_samples in payload to LLM', async () => {
+  const pluralSamples = [
+    { plural: 0, sample: 1 },
+    { plural: 1, sample: 2 },
+    { plural: 2, sample: 5 },
+  ];
+  const responsePayload = {
+    formula: '',
+    target_language: 'uk',
+    source_language: 'en',
+    translations: [{ msgid_plural: '%d banana', msgstr: ['%d банан', '%d банана', '%d бананів'] }],
+  };
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValue(mockCompletion(JSON.stringify(responsePayload)));
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await translateStrings([{ msgid: '1 banana', msgid_plural: '%d banana' }], 'uk', {
+    apiKey: 'test-key',
+    client: mockClient,
+    pluralSamples,
+  });
+
+  type CreateParams = { messages: Array<{ content?: string }> };
+  const params = createMock.mock.calls[0]?.[0] as CreateParams;
+  const userJson = JSON.parse(params.messages![1].content as string);
+  expect(userJson.plural_samples).toEqual(pluralSamples);
+});

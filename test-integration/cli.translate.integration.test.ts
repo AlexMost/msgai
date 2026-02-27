@@ -58,3 +58,38 @@ msgstr ""
     tempPo.cleanup();
   }
 });
+
+test('CLI with Ukrainian plural entry translates to 3 forms (1 банан, 2 банана, 5 бананів)', () => {
+  const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
+  const tempPo = getTmpPo(`
+msgid "\${ n } banana"
+msgid_plural "\${ n } banana"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+`);
+
+  try {
+    const runResult = spawnSync(
+      process.execPath,
+      [cliPath, tempPo.poFilePath, '--source-lang=en'],
+      {
+        encoding: 'utf8',
+      },
+    );
+
+    expect(runResult.status).toBe(0);
+    if (runResult.stderr) {
+      console.error(runResult.stderr);
+    }
+
+    const content = fs.readFileSync(tempPo.poFilePath, 'utf8');
+
+    // Ukrainian plural forms for banana (1 банан, 2 банана/банани, 5 бананів)
+    expect(content).toContain('msgstr[0] "${ n } банан"');
+    expect(content).toContain('msgstr[1] "${ n } банани"');
+    expect(content).toContain('msgstr[2] "${ n } бананів"');
+  } finally {
+    tempPo.cleanup();
+  }
+});

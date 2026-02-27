@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { getExamples } from 'plural-forms';
 import {
   getUntranslatedMsgids,
   parsePoContent,
@@ -37,7 +38,16 @@ export async function runTranslate(
 
     const targetLanguage = getLanguage(parsedPo) ?? 'en';
     const formula = getPluralForms(parsedPo) ?? '';
-    const options = { apiKey, sourceLanguage: sourceLang, formula };
+    const normalizedTarget = (targetLanguage ?? '').trim().split(/\s/)[0] ?? '';
+    let pluralSamples: { plural: number; sample: number }[] | undefined;
+    if (normalizedTarget) {
+      try {
+        pluralSamples = getExamples(normalizedTarget);
+      } catch {
+        // locale not in plural-forms; rely on formula only
+      }
+    }
+    const options = { apiKey, sourceLanguage: sourceLang, formula, pluralSamples };
 
     const allResults: Awaited<ReturnType<typeof translateStrings>> = [];
     for (let i = 0; i < entries.length; i += TRANSLATE_BATCH_SIZE) {

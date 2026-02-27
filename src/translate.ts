@@ -41,6 +41,8 @@ export type TranslatePayloadRequest = {
   target_language: string;
   source_language: string;
   translations: TranslateRequestEntry[];
+  /** Optional: sample counts per plural form (e.g. [{plural:0,sample:1},{plural:1,sample:2},{plural:2,sample:5}] for Ukrainian). */
+  plural_samples?: { plural: number; sample: number }[];
 };
 
 /** Response payload: translations have msgstr filled. */
@@ -82,6 +84,7 @@ You will receive a JSON object containing:
 - "target_language": language code to translate into
 - "source_language": language code of the source text
 - "translations": ordered array of entries
+- "plural_samples" (optional): array of { "plural": number, "sample": number } — one per plural form, giving the example count for that form (e.g. 1, 2, 5 for Ukrainian)
 
 Each entry is either:
 
@@ -94,6 +97,8 @@ Each entry is either:
    → Translate the plural form
    → Set "msgstr" to an ARRAY of translated strings
    → The number and order of elements MUST follow the plural "formula"
+   → If "plural_samples" is present: "msgstr" must have length equal to plural_samples.length; the i-th string is the translation for the count plural_samples[i].sample (e.g. form for 1 item, form for 2 items, form for 5 items)
+   → If "plural_samples" is absent: the number and order of elements MUST follow the plural "formula"
    → Copy "msgid_plural" unchanged into the output entry
 
 Output:
@@ -199,21 +204,26 @@ export type PoEntryOutput =
 export async function translateItems(
   items: TranslateItem[],
   targetLanguage: string,
-  options: TranslateOptions & { sourceLanguage?: string; formula?: string },
+  options: TranslateOptions & {
+    sourceLanguage?: string;
+    formula?: string;
+    pluralSamples?: { plural: number; sample: number }[];
+  },
 ): Promise<TranslationResult[]> {
   if (items.length === 0) return [];
 
   const sourceLanguage = options?.sourceLanguage ?? 'en';
   const formula = options?.formula ?? '';
-  const result = await translatePayload(
-    {
-      formula,
-      target_language: targetLanguage,
-      source_language: sourceLanguage,
-      translations: items,
-    },
-    options,
-  );
+  const payload: TranslatePayloadRequest = {
+    formula,
+    target_language: targetLanguage,
+    source_language: sourceLanguage,
+    translations: items,
+  };
+  if (options.pluralSamples != null && options.pluralSamples.length > 0) {
+    payload.plural_samples = options.pluralSamples;
+  }
+  const result = await translatePayload(payload, options);
 
   return result.translations.map((t) => t.msgstr);
 }
@@ -222,7 +232,11 @@ export async function translateItems(
 export async function translateStrings(
   entries: PoEntryInput[],
   targetLanguage: string,
-  options: TranslateOptions & { sourceLanguage?: string; formula?: string },
+  options: TranslateOptions & {
+    sourceLanguage?: string;
+    formula?: string;
+    pluralSamples?: { plural: number; sample: number }[];
+  },
 ): Promise<PoEntryOutput[]> {
   if (entries.length === 0) return [];
 
