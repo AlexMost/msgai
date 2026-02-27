@@ -59,6 +59,8 @@ This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/
 
 Releases are driven by [release-please](https://github.com/googleapis/release-please): it opens a **Release PR** that bumps the version and updates `CHANGELOG.md` from conventional commits. After the Release PR is merged, release-please creates the release tag on `main`.
 
+**Release-please setup:** In the repo go to **Settings → Actions → General → Workflow permissions** and set to **Read and write** and enable **Allow GitHub Actions to create and approve pull requests**. You can then use the default `GITHUB_TOKEN` (no secret). If you see "Error adding to tree" or PR creation blocked, add a Personal Access Token as secret `RELEASE_PLEASE_TOKEN` (classic: `repo` + `workflow` scope; fine-grained: Contents + Pull requests + Workflows write).
+
 **Publishing to npm (local):**
 
 1. Pull `main` with the new release tag.

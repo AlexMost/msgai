@@ -20,5 +20,6 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           release-type: node
-          # Use a PAT with repo scope so the action can create PRs (GITHUB_TOKEN cannot).
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          # Use PAT if set; otherwise GITHUB_TOKEN (requires repo Settings > Actions > General:
+          # "Allow GitHub Actions to create and approve pull requests").
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
