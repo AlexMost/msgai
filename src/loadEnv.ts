@@ -8,6 +8,6 @@ let loaded = false;
 
 export function loadEnv(): void {
   if (loaded) return;
-  dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+  dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
   loaded = true;
 }
