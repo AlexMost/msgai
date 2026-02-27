@@ -115,19 +115,18 @@ export function getEntriesToTranslate(
 /**
  * Applies translation results into the parsed PO (mutates parsedPo.translations).
  * Singular results become one-element msgstr; plural results stay as string[].
+ * Lookup is by result.msgctxt (default '') and result.msgid.
  */
 export function applyTranslations(
   parsedPo: GetTextTranslations,
-  keys: PoEntryKey[],
   results: PoEntryOutput[],
 ): void {
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    const result = results[i];
+  for (const result of results) {
     if (result == null) continue;
-    const contextEntries = parsedPo.translations[key.context];
+    const context = result.msgctxt ?? '';
+    const contextEntries = parsedPo.translations[context];
     if (contextEntries == null) continue;
-    const entry = contextEntries[key.msgid];
+    const entry = contextEntries[result.msgid];
     if (entry == null) continue;
 
     if (typeof result.msgstr === 'string') {
@@ -139,14 +138,18 @@ export function applyTranslations(
 }
 
 /**
- * Removes the "fuzzy" flag from entries at the given keys (mutates parsedPo.translations).
- * Used after applying new translations so fuzzy entries are no longer marked fuzzy.
+ * Removes the "fuzzy" flag from entries corresponding to the given results (mutates parsedPo.translations).
+ * Lookup is by result.msgctxt (default '') and result.msgid.
  */
-export function clearFuzzyFromEntries(parsedPo: GetTextTranslations, keys: PoEntryKey[]): void {
-  for (const key of keys) {
-    const contextEntries = parsedPo.translations[key.context];
+export function clearFuzzyFromEntries(
+  parsedPo: GetTextTranslations,
+  results: Array<{ msgid: string; msgctxt?: string }>,
+): void {
+  for (const result of results) {
+    const context = result.msgctxt ?? '';
+    const contextEntries = parsedPo.translations[context];
     if (contextEntries == null) continue;
-    const entry = contextEntries[key.msgid];
+    const entry = contextEntries[result.msgid];
     if (entry == null || !entry.comments?.flag) continue;
 
     const newFlag = entry.comments.flag

@@ -246,8 +246,8 @@ export type PoEntryInput = {
 
 /** .po-style entry output: same shape as input with msgstr filled (string for singular, string[] for plural). */
 export type PoEntryOutput =
-  | { msgid: string; msgstr: string; msgid_plural?: undefined }
-  | { msgid: string; msgid_plural: string; msgstr: string[] };
+  | { msgid: string; msgstr: string; msgid_plural?: undefined; msgctxt?: string }
+  | { msgid: string; msgid_plural: string; msgstr: string[]; msgctxt?: string };
 
 export async function translateItems(
   items: TranslateItem[],

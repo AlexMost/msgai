@@ -67,7 +67,7 @@ export async function runTranslate(
   try {
     const poContent = fs.readFileSync(poFilePath, 'utf8');
     const parsedPo = parsePoContent(poContent);
-    const { entries, keys } = getEntriesToTranslate(parsedPo, { includeFuzzy });
+    const { entries } = getEntriesToTranslate(parsedPo, { includeFuzzy });
 
     if (entries.length === 0) {
       console.log(`Nothing to translate in ${poFilePath}.`);
@@ -87,7 +87,6 @@ export async function runTranslate(
     }
     const options = { apiKey, sourceLanguage: sourceLang, formula, pluralSamples };
 
-    const allResults: Awaited<ReturnType<typeof translateStrings>> = [];
     for (let i = 0; i < entries.length; i += TRANSLATE_BATCH_SIZE) {
       const batch = entries.slice(i, i + TRANSLATE_BATCH_SIZE);
       const batchNum = Math.floor(i / TRANSLATE_BATCH_SIZE) + 1;
@@ -103,14 +102,13 @@ export async function runTranslate(
           console.log(`  ${r.msgid_plural} (plural) => ${r.msgstr.join(' | ')}`);
         }
       }
-      allResults.push(...batchResults);
+      applyTranslations(parsedPo, batchResults);
+      if (includeFuzzy) {
+        clearFuzzyFromEntries(parsedPo, batchResults);
+      }
+      fs.writeFileSync(poFilePath, compilePo(parsedPo));
     }
 
-    applyTranslations(parsedPo, keys, allResults);
-    if (includeFuzzy) {
-      clearFuzzyFromEntries(parsedPo, keys);
-    }
-    fs.writeFileSync(poFilePath, compilePo(parsedPo), undefined);
     return 0;
   } catch (error) {
     const apiMessage = getApiErrorMessage(error);

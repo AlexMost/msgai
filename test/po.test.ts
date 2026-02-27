@@ -152,15 +152,11 @@ msgstr[2] ""
       'utf8',
     ),
   );
-  const keys = [
-    { context: '', msgid: 'Hello' },
-    { context: '', msgid: 'Count' },
-  ];
   const results = [
     { msgid: 'Hello', msgstr: 'Привіт' },
     { msgid: 'Count', msgid_plural: 'Counts', msgstr: ['один', 'два', 'багато'] },
   ];
-  applyTranslations(parsed, keys, results);
+  applyTranslations(parsed, results);
   expect(parsed.translations['']['Hello'].msgstr).toEqual(['Привіт']);
   expect(parsed.translations['']['Count'].msgstr).toEqual(['один', 'два', 'багато']);
 });
@@ -179,7 +175,7 @@ msgstr ""
     ),
   );
   const before = parsed.translations['']['Hello'].msgstr.slice();
-  applyTranslations(parsed, [{ context: '', msgid: 'Hello' }], []);
+  applyTranslations(parsed, []);
   expect(parsed.translations['']['Hello'].msgstr).toEqual(before);
 });
 
@@ -221,7 +217,7 @@ msgstr ""
   expect(keys).toHaveLength(1);
   expect(keys[0]).toEqual({ context: '', msgid: 'Hello' });
 
-  applyTranslations(parsed, keys, [{ msgid: 'Hello', msgstr: 'Привіт' }]);
+  applyTranslations(parsed, [{ msgid: 'Hello', msgstr: 'Привіт', msgctxt: '' }]);
 
   expect(parsed.translations['auth']['Hello'].msgstr).toEqual(['Вітаємо']);
   expect(parsed.translations['']['Hello'].msgstr).toEqual(['Привіт']);
@@ -276,9 +272,9 @@ msgstr "Старий переклад"
   const parsed = parsePoContent(tempPo.poContent);
   expect(isEntryFuzzy(parsed.translations['']['Hello'])).toBe(true);
 
-  const keys = [{ context: '', msgid: 'Hello' }];
-  applyTranslations(parsed, keys, [{ msgid: 'Hello', msgstr: 'Новий переклад' }]);
-  clearFuzzyFromEntries(parsed, keys);
+  const results = [{ msgid: 'Hello', msgstr: 'Новий переклад' }];
+  applyTranslations(parsed, results);
+  clearFuzzyFromEntries(parsed, results);
 
   expect(parsed.translations['']['Hello'].msgstr).toEqual(['Новий переклад']);
   expect(isEntryFuzzy(parsed.translations['']['Hello'])).toBe(false);
