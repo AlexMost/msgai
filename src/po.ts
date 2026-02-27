@@ -60,7 +60,7 @@ export type GetEntriesToTranslateOptions = {
 };
 
 /**
- * Returns untranslated entries and their keys in stable order (contexts and msgids sorted).
+ * Returns untranslated entries and their keys in the order they appear in the original PO file (parser order).
  * Skips the header (msgid "").
  * By default skips fuzzy entries; set includeFuzzy to include them (with empty msgstr for the request).
  */
@@ -75,12 +75,12 @@ export function getEntriesToTranslate(
   const entries: PoEntryInput[] = [];
   const keys: PoEntryKey[] = [];
   const translations: GetTextTranslationRecord = parsedPo.translations;
-  const contextNames = Object.keys(translations).sort();
+  const contextNames = Object.keys(translations);
 
   for (const context of contextNames) {
     const contextEntries = translations[context];
     if (contextEntries == null) continue;
-    const msgids = Object.keys(contextEntries).sort();
+    const msgids = Object.keys(contextEntries);
     for (const msgid of msgids) {
       if (msgid === '') continue;
       const entry = contextEntries[msgid];
