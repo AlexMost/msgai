@@ -10,6 +10,10 @@
 - `msgai <file.po> --dry-run`: only lists untranslated `msgid` values (no API calls, no file changes).
 - `msgai --help`: prints command usage.
 
+### Source language
+
+- **`--source-lang LANG`**: source language of `msgid` strings as an ISO 639-1 code (e.g. `en`, `uk`). If omitted, the model will infer the source language. Invalid codes cause the CLI to exit with an error.
+
 ### API key (for translation)
 
 When running without `--dry-run`, the CLI needs an OpenAI API key. You can pass it in either of these ways:

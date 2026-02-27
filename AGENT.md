@@ -33,7 +33,7 @@ This file defines working instructions for AI coding agents in this repository.
 - Keep changes focused and minimal; avoid broad refactors unless requested.
 - Prefer explicit, readable TypeScript over clever one-liners.
 - Preserve current CLI UX:
-  - Usage line: `Usage: msgai <file.po> [--dry-run]`
+  - Usage line: `Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]`
   - Exit code `0` on success, non-zero on error paths.
 - Avoid introducing new dependencies unless necessary.
 
