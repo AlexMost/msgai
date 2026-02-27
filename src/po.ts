@@ -117,10 +117,7 @@ export function getEntriesToTranslate(
  * Singular results become one-element msgstr; plural results stay as string[].
  * Lookup is by result.msgctxt (default '') and result.msgid.
  */
-export function applyTranslations(
-  parsedPo: GetTextTranslations,
-  results: PoEntryOutput[],
-): void {
+export function applyTranslations(parsedPo: GetTextTranslations, results: PoEntryOutput[]): void {
   for (const result of results) {
     if (result == null) continue;
     const context = result.msgctxt ?? '';
