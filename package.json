@@ -7,7 +7,8 @@
     "msgai": "dist/src/cli/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "test": "npm run build && jest",
     "test:integration": "npm run build && jest -c jest.integration.config.cjs",
     "test:watch": "npm run build && jest --watch",
