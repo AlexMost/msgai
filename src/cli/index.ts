@@ -92,8 +92,8 @@ function main(argv: string[]): number | undefined {
   const args = parseArgs(argv);
 
   if (args.error) {
-    console.error(args.error);
-    console.error(USAGE);
+    console.warn(args.error);
+    console.warn(USAGE);
     return 1;
   }
 

@@ -29,15 +29,15 @@ jest.mock('../../src/translate', () => {
   };
 });
 
-let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
+let consoleWarnSpy: jest.SpiedFunction<typeof console.warn>;
 
 beforeEach(() => {
   mockState.errorToThrow = null;
-  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  consoleErrorSpy.mockRestore();
+  consoleWarnSpy.mockRestore();
 });
 
 test('runTranslate shows 401 message when API returns 401', async () => {
@@ -50,10 +50,10 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Invalid or missing API key'),
     );
-    expect(consoleErrorSpy.mock.calls[0][0]).toContain('OPENAI_API_KEY');
+    expect(consoleWarnSpy.mock.calls[0][0]).toContain('OPENAI_API_KEY');
   } finally {
     tempPo.cleanup();
   }
@@ -69,7 +69,7 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('country/region'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('country/region'));
   } finally {
     tempPo.cleanup();
   }
@@ -85,8 +85,8 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Quota exceeded'));
-    expect(consoleErrorSpy.mock.calls[0][0]).toContain('billing');
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Quota exceeded'));
+    expect(consoleWarnSpy.mock.calls[0][0]).toContain('billing');
   } finally {
     tempPo.cleanup();
   }
@@ -102,7 +102,7 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Quota exceeded'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Quota exceeded'));
   } finally {
     tempPo.cleanup();
   }
@@ -118,7 +118,7 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Rate limit reached'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Rate limit reached'));
   } finally {
     tempPo.cleanup();
   }
@@ -134,7 +134,7 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('OpenAI server error'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('OpenAI server error'));
   } finally {
     tempPo.cleanup();
   }
@@ -150,7 +150,7 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('OpenAI overloaded'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('OpenAI overloaded'));
   } finally {
     tempPo.cleanup();
   }
@@ -166,10 +166,10 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Failed to process PO file'),
     );
-    expect(consoleErrorSpy.mock.calls[0][0]).toContain('Network connection failed');
+    expect(consoleWarnSpy.mock.calls[0][0]).toContain('Network connection failed');
   } finally {
     tempPo.cleanup();
   }

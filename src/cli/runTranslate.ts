@@ -115,11 +115,11 @@ export async function runTranslate(
   } catch (error) {
     const apiMessage = getApiErrorMessage(error);
     if (apiMessage != null) {
-      console.error(apiMessage);
+      console.warn(apiMessage);
       return 1;
     }
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`Failed to process PO file: ${message}`);
+    console.warn(`Failed to process PO file: ${message}`);
     return 1;
   }
 }
@@ -129,7 +129,7 @@ const USAGE =
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   if (!args.poFilePath) {
-    console.error(USAGE);
+    console.warn(USAGE);
     return 1;
   }
 
@@ -138,7 +138,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       validateSourceLang(args.sourceLang);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(message);
+      console.warn(message);
       return 1;
     }
   }
@@ -149,7 +149,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       resultApiKey = resolveApiKey(args.apiKey);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(message.replace('pass apiKey in options', 'pass --api-key'));
+      console.warn(message.replace('pass apiKey in options', 'pass --api-key'));
       return 1;
     }
     return runTranslate(args.poFilePath, resultApiKey, args.sourceLang, args.includeFuzzy);
@@ -169,7 +169,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`Failed to process PO file: ${message}`);
+    console.warn(`Failed to process PO file: ${message}`);
     return 1;
   }
 }

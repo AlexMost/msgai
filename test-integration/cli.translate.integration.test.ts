@@ -10,8 +10,8 @@ loadEnv();
 /** Log CLI stderr/stdout when exit code is non-zero so failures show the real error. */
 function logCliOutputIfFailed(runResult: { status: number | null; stderr?: string; stdout?: string }): void {
   if (runResult.status !== 0) {
-    if (runResult.stderr) console.error('CLI stderr:', runResult.stderr);
-    if (runResult.stdout) console.error('CLI stdout:', runResult.stdout);
+    if (runResult.stderr) console.warn('CLI stderr:', runResult.stderr);
+    if (runResult.stdout) console.warn('CLI stdout:', runResult.stdout);
   }
 }
 

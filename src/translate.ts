@@ -159,31 +159,31 @@ function parsePayloadResponse(content: string | null): TranslatePayloadResponse 
   try {
     parsed = JSON.parse(toParse) as unknown;
   } catch {
-    console.error('OpenAI model returned (raw):', raw);
+    console.warn('OpenAI model returned (raw):', raw);
     throw new Error(`OpenAI response is not valid JSON: ${raw.slice(0, 200)}`);
   }
   if (parsed == null || typeof parsed !== 'object' || !('translations' in parsed)) {
-    console.error('OpenAI model returned (raw):', raw);
+    console.warn('OpenAI model returned (raw):', raw);
     throw new Error(
       `OpenAI response must be object with "translations" array: ${raw.slice(0, 200)}`,
     );
   }
   const payload = parsed as Record<string, unknown>;
   if (!Array.isArray(payload.translations)) {
-    console.error('OpenAI model returned (raw):', raw);
+    console.warn('OpenAI model returned (raw):', raw);
     throw new Error(`OpenAI response "translations" must be an array: ${raw.slice(0, 200)}`);
   }
   for (let i = 0; i < payload.translations.length; i++) {
     const t = payload.translations[i];
     if (t == null || typeof t !== 'object' || !('msgstr' in t)) {
-      console.error('OpenAI model returned (raw):', raw);
+      console.warn('OpenAI model returned (raw):', raw);
       throw new Error(`OpenAI response translations[${i}] must have msgstr`);
     }
     const entry = t as Record<string, unknown>;
     const msgstr = entry.msgstr;
     if (typeof msgstr === 'string') continue;
     if (Array.isArray(msgstr) && msgstr.every((s): s is string => typeof s === 'string')) continue;
-    console.error('OpenAI model returned (raw):', raw);
+    console.warn('OpenAI model returned (raw):', raw);
     throw new Error(
       `OpenAI response translations[${i}].msgstr must be a string or array of strings`,
     );
