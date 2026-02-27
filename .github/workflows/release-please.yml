@@ -25,3 +25,5 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           release-type: node
+          # Use a PAT with repo scope so the action can create PRs (GITHUB_TOKEN cannot).
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
