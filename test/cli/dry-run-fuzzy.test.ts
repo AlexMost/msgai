@@ -16,11 +16,9 @@ test('CLI --dry-run without --include-fuzzy does not include fuzzy entries', () 
   const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
   const tempPo = getTmpPo(PO_WITH_FUZZY);
 
-  const runResult = spawnSync(process.execPath, [
-    cliPath,
-    '--dry-run',
-    tempPo.poFilePath,
-  ], { encoding: 'utf8' });
+  const runResult = spawnSync(process.execPath, [cliPath, '--dry-run', tempPo.poFilePath], {
+    encoding: 'utf8',
+  });
 
   tempPo.cleanup();
 
@@ -34,12 +32,11 @@ test('CLI --dry-run with --include-fuzzy includes fuzzy entries', () => {
   const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
   const tempPo = getTmpPo(PO_WITH_FUZZY);
 
-  const runResult = spawnSync(process.execPath, [
-    cliPath,
-    '--dry-run',
-    '--include-fuzzy',
-    tempPo.poFilePath,
-  ], { encoding: 'utf8' });
+  const runResult = spawnSync(
+    process.execPath,
+    [cliPath, '--dry-run', '--include-fuzzy', tempPo.poFilePath],
+    { encoding: 'utf8' },
+  );
 
   tempPo.cleanup();
 

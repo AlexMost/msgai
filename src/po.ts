@@ -41,9 +41,7 @@ function isEntryUntranslated(entry: { msgstr: string[] }): boolean {
 }
 
 /** Returns true if the entry has the fuzzy flag (e.g. "#, fuzzy" in PO). */
-export function isEntryFuzzy(
-  entry: { comments?: { flag?: string } },
-): boolean {
+export function isEntryFuzzy(entry: { comments?: { flag?: string } }): boolean {
   const flag = entry.comments?.flag;
   if (flag == null || typeof flag !== 'string') return false;
   return flag.split(',').some((s) => s.trim().toLowerCase() === 'fuzzy');
@@ -90,8 +88,7 @@ export function getEntriesToTranslate(
 
       const untranslated = isEntryUntranslated(entry);
       const fuzzy = isEntryFuzzy(entry);
-      const include =
-        untranslated || (includeFuzzy && fuzzy);
+      const include = untranslated || (includeFuzzy && fuzzy);
       if (!include) continue;
 
       if (entry.msgid_plural != null) {
@@ -145,10 +142,7 @@ export function applyTranslations(
  * Removes the "fuzzy" flag from entries at the given keys (mutates parsedPo.translations).
  * Used after applying new translations so fuzzy entries are no longer marked fuzzy.
  */
-export function clearFuzzyFromEntries(
-  parsedPo: GetTextTranslations,
-  keys: PoEntryKey[],
-): void {
+export function clearFuzzyFromEntries(parsedPo: GetTextTranslations, keys: PoEntryKey[]): void {
   for (const key of keys) {
     const contextEntries = parsedPo.translations[key.context];
     if (contextEntries == null) continue;

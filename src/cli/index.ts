@@ -18,7 +18,9 @@ function parseArgs(argv: string[]): CliArgs {
   try {
     const parsedArgs = yargs(argv)
       .scriptName('msgai')
-      .usage('Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]')
+      .usage(
+        'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]',
+      )
       .option('dry-run', {
         type: 'boolean',
         default: false,
@@ -86,7 +88,8 @@ function parseArgs(argv: string[]): CliArgs {
   }
 }
 
-const USAGE = 'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]';
+const USAGE =
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]';
 
 function main(argv: string[]): number | undefined {
   const args = parseArgs(argv);

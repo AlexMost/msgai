@@ -21,9 +21,23 @@
     "type": "git",
     "url": "git+https://github.com/AlexMost/msgai.git"
   },
-  "keywords": ["gettext", "po", "translate", "openai", "cli", "i18n"],
-  "engines": {"node": ">=20", "npm": ">=10"},
-  "files": ["dist/src", "README.md", "CHANGELOG.md"],
+  "keywords": [
+    "gettext",
+    "po",
+    "translate",
+    "openai",
+    "cli",
+    "i18n"
+  ],
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
+  "files": [
+    "dist/src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
