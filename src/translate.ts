@@ -1,13 +1,5 @@
-import dotenv from 'dotenv';
 import OpenAI from 'openai';
-
-let dotenvLoaded = false;
-
-function loadEnv(): void {
-  if (dotenvLoaded) return;
-  dotenv.config();
-  dotenvLoaded = true;
-}
+import { loadEnv } from './loadEnv';
 
 export function resolveApiKey(apiKey?: string): string {
   loadEnv();
@@ -26,6 +18,28 @@ export type TranslateOptions = {
 };
 
 const DEFAULT_MODEL = 'gpt-4o';
+
+/** Error codes: https://developers.openai.com/api/docs/guides/error-codes#api-errors */
+
+const MAX_RETRIES = 3;
+const RETRY_DELAYS_MS = [1000, 2000, 4000];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isApiError(err: unknown): err is { status: number; code?: string; message?: string } {
+  return (
+    err != null &&
+    typeof err === 'object' &&
+    'status' in err &&
+    typeof (err as { status: unknown }).status === 'number'
+  );
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 503;
+}
 
 /** Request entry: either singular (msgid) or plural (msgid_plural). Optional msgctxt for gettext context. */
 export type TranslateRequestEntry =
@@ -106,9 +120,9 @@ Each entry is either:
 
 Output:
 
-Return ONLY valid JSON.
+You MUST respond with nothing but a single JSON object. No markdown, no code fences (no \`\`\`json or \`\`\`), no explanatory text before or after. The response must be parseable by JSON.parse() directly.
 
-Return EXACTLY this structure:
+Return EXACTLY this structure (and nothing else):
 
 {
   "formula": "...",
@@ -124,38 +138,52 @@ Additional constraints:
 
 - Preserve the exact input order of entries.
 - Do not modify "formula", "target_language", or "source_language".
-- Do not add, remove, or rename fields.
-- Do not add explanations or markdown.`;
+- Do not add, remove, or rename fields.`;
+}
+
+/** Strip markdown code fences if the model wrapped JSON in ```json ... ``` */
+function stripJsonFences(raw: string): string {
+  const trimmed = raw.trim();
+  const jsonBlock = /^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/;
+  const match = trimmed.match(jsonBlock);
+  return match ? match[1].trim() : trimmed;
 }
 
 function parsePayloadResponse(content: string | null): TranslatePayloadResponse {
   if (content == null || content.trim() === '') {
     throw new Error('Empty response from OpenAI');
   }
+  const raw = content.trim();
+  const toParse = stripJsonFences(raw);
   let parsed: unknown;
   try {
-    parsed = JSON.parse(content.trim()) as unknown;
+    parsed = JSON.parse(toParse) as unknown;
   } catch {
-    throw new Error(`OpenAI response is not valid JSON: ${content.slice(0, 200)}`);
+    console.error('OpenAI model returned (raw):', raw);
+    throw new Error(`OpenAI response is not valid JSON: ${raw.slice(0, 200)}`);
   }
   if (parsed == null || typeof parsed !== 'object' || !('translations' in parsed)) {
+    console.error('OpenAI model returned (raw):', raw);
     throw new Error(
-      `OpenAI response must be object with "translations" array: ${content.slice(0, 200)}`,
+      `OpenAI response must be object with "translations" array: ${raw.slice(0, 200)}`,
     );
   }
   const payload = parsed as Record<string, unknown>;
   if (!Array.isArray(payload.translations)) {
-    throw new Error(`OpenAI response "translations" must be an array: ${content.slice(0, 200)}`);
+    console.error('OpenAI model returned (raw):', raw);
+    throw new Error(`OpenAI response "translations" must be an array: ${raw.slice(0, 200)}`);
   }
   for (let i = 0; i < payload.translations.length; i++) {
     const t = payload.translations[i];
     if (t == null || typeof t !== 'object' || !('msgstr' in t)) {
+      console.error('OpenAI model returned (raw):', raw);
       throw new Error(`OpenAI response translations[${i}] must have msgstr`);
     }
     const entry = t as Record<string, unknown>;
     const msgstr = entry.msgstr;
     if (typeof msgstr === 'string') continue;
     if (Array.isArray(msgstr) && msgstr.every((s): s is string => typeof s === 'string')) continue;
+    console.error('OpenAI model returned (raw):', raw);
     throw new Error(
       `OpenAI response translations[${i}].msgstr must be a string or array of strings`,
     );
@@ -178,16 +206,28 @@ export async function translatePayload(
     });
   const model = options?.model ?? DEFAULT_MODEL;
 
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: buildSystemMessage() },
-      { role: 'user', content: JSON.stringify(payload) },
-    ],
-  });
-
-  const content = response.choices[0]?.message?.content ?? null;
-  return parsePayloadResponse(content);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: buildSystemMessage() },
+          { role: 'user', content: JSON.stringify(payload) },
+        ],
+      });
+      const content = response.choices[0]?.message?.content ?? null;
+      return parsePayloadResponse(content);
+    } catch (err) {
+      const shouldRetry = attempt < MAX_RETRIES && isApiError(err) && isRetryableStatus(err.status);
+      if (shouldRetry) {
+        const delayMs = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
+        await sleep(delayMs);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Unreachable');
 }
 
 /** One item to translate: singular (msgid) or plural (msgid_plural). */
@@ -249,8 +289,7 @@ export async function translateStrings(
   if (entries.length === 0) return [];
 
   const items: TranslateItem[] = entries.map((e) => {
-    const base =
-      e.msgid_plural != null ? { msgid_plural: e.msgid_plural } : { msgid: e.msgid };
+    const base = e.msgid_plural != null ? { msgid_plural: e.msgid_plural } : { msgid: e.msgid };
     return e.msgctxt !== undefined ? { ...base, msgctxt: e.msgctxt } : base;
   });
   const results = await translateItems(items, targetLanguage, options);

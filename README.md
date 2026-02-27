@@ -28,6 +28,8 @@ When running without `--dry-run`, the CLI needs an OpenAI API key. You can pass 
 
 If neither is set, the CLI exits with code 1 and a message asking you to set the key.
 
+On API errors (e.g. rate limit, quota, server errors), the CLI shows a status-specific message and exits with code 1. For error code reference, see [OpenAI API error codes](https://developers.openai.com/api/docs/guides/error-codes#api-errors).
+
 ## Development environment
 
 ### Requirements

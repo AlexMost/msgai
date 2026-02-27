@@ -2,9 +2,27 @@ import { test, expect } from '@jest/globals';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { loadEnv } from '../src/loadEnv';
 import { getTmpPo } from '../test/test-utils/getTmpPo';
 
+loadEnv();
+
+/** Log CLI stderr/stdout when exit code is non-zero so failures show the real error. */
+function logCliOutputIfFailed(runResult: { status: number | null; stderr?: string; stdout?: string }): void {
+  if (runResult.status !== 0) {
+    if (runResult.stderr) console.error('CLI stderr:', runResult.stderr);
+    if (runResult.stdout) console.error('CLI stdout:', runResult.stdout);
+  }
+}
+
+/** API key for integration tests that call OpenAI. From OPENAI_API_KEY env or .env (loaded above). */
+const apiKey = process.env['OPENAI_API_KEY'];
+
 test('CLI without --dry-run calls OpenAI and updates .po file with translated strings', () => {
+  if (!apiKey) {
+    console.warn('Skipping: OPENAI_API_KEY not set');
+    return;
+  }
   const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
   const tempPo = getTmpPo(`
 msgid "Hello"
@@ -14,16 +32,14 @@ msgstr ""
   try {
     const runResult = spawnSync(
       process.execPath,
-      [cliPath, tempPo.poFilePath, '--source-lang=en'],
+      [cliPath, tempPo.poFilePath, '--api-key', apiKey, '--source-lang=en'],
       {
         encoding: 'utf8',
       },
     );
 
+    logCliOutputIfFailed(runResult);
     expect(runResult.status).toBe(0);
-    if (runResult.stderr) {
-      console.error(runResult.stderr);
-    }
 
     const content = fs.readFileSync(tempPo.poFilePath, 'utf8');
     expect(content).toContain('msgstr "Привіт"');
@@ -51,7 +67,6 @@ msgstr ""
       env: envWithoutKey,
       cwd,
     });
-
     expect(runResult.status).not.toBe(0);
     expect(runResult.stderr).toMatch(/API key|OPENAI_API_KEY/i);
   } finally {
@@ -60,6 +75,10 @@ msgstr ""
 });
 
 test('CLI with Ukrainian plural entry translates to 3 forms (1 банан, 2 банана, 5 бананів)', () => {
+  if (!apiKey) {
+    console.warn('Skipping: OPENAI_API_KEY not set');
+    return;
+  }
   const cliPath = path.resolve(process.cwd(), 'dist/src/cli/index.js');
   const tempPo = getTmpPo(`
 msgid "\${ n } banana"
@@ -72,16 +91,14 @@ msgstr[2] ""
   try {
     const runResult = spawnSync(
       process.execPath,
-      [cliPath, tempPo.poFilePath, '--source-lang=en'],
+      [cliPath, tempPo.poFilePath, '--api-key', apiKey, '--source-lang=en'],
       {
         encoding: 'utf8',
       },
     );
 
+    logCliOutputIfFailed(runResult);
     expect(runResult.status).toBe(0);
-    if (runResult.stderr) {
-      console.error(runResult.stderr);
-    }
 
     const content = fs.readFileSync(tempPo.poFilePath, 'utf8');
 

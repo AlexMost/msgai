@@ -273,3 +273,102 @@ test('translateStrings with pluralSamples option passes plural_samples in payloa
   const userJson = JSON.parse(params.messages![1].content as string);
   expect(userJson.plural_samples).toEqual(pluralSamples);
 });
+
+function apiError(
+  status: number,
+  code?: string,
+  message?: string,
+): Error & { status: number; code?: string } {
+  const err = new Error(message ?? `API error ${status}`) as Error & {
+    status: number;
+    code?: string;
+  };
+  err.status = status;
+  if (code !== undefined) err.code = code;
+  return err;
+}
+
+test('translatePayload retries on 429 then succeeds', async () => {
+  const responsePayload = {
+    formula: '',
+    target_language: 'uk',
+    source_language: 'en',
+    translations: [{ msgid: 'Hi', msgstr: 'Привіт' }],
+  };
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockRejectedValueOnce(apiError(429))
+    .mockResolvedValueOnce(mockCompletion(JSON.stringify(responsePayload)));
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  const result = await translatePayload(
+    { formula: '', target_language: 'uk', source_language: 'en', translations: [{ msgid: 'Hi' }] },
+    { apiKey: 'test-key', client: mockClient },
+  );
+
+  expect(result.translations[0].msgstr).toBe('Привіт');
+  expect(createMock).toHaveBeenCalledTimes(2);
+});
+
+test('translatePayload retries up to 4 times on 429 then rethrows', async () => {
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockRejectedValue(apiError(429));
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await expect(
+    translatePayload(
+      {
+        formula: '',
+        target_language: 'uk',
+        source_language: 'en',
+        translations: [{ msgid: 'Hi' }],
+      },
+      { apiKey: 'test-key', client: mockClient },
+    ),
+  ).rejects.toMatchObject({ status: 429 });
+
+  expect(createMock).toHaveBeenCalledTimes(4);
+}, 15000);
+
+test('translatePayload does not retry on 401', async () => {
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockRejectedValue(apiError(401));
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await expect(
+    translatePayload(
+      {
+        formula: '',
+        target_language: 'uk',
+        source_language: 'en',
+        translations: [{ msgid: 'Hi' }],
+      },
+      { apiKey: 'test-key', client: mockClient },
+    ),
+  ).rejects.toMatchObject({ status: 401 });
+
+  expect(createMock).toHaveBeenCalledTimes(1);
+});
+
+test('translatePayload does not retry on 403', async () => {
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockRejectedValue(apiError(403));
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await expect(
+    translatePayload(
+      {
+        formula: '',
+        target_language: 'uk',
+        source_language: 'en',
+        translations: [{ msgid: 'Hi' }],
+      },
+      { apiKey: 'test-key', client: mockClient },
+    ),
+  ).rejects.toMatchObject({ status: 403 });
+
+  expect(createMock).toHaveBeenCalledTimes(1);
+});

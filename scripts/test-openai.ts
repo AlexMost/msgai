@@ -5,9 +5,6 @@
  */
 
 import { resolveApiKey, translateStrings } from '../src/translate';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 async function main(): Promise<void> {
   const targetLanguage = 'uk';
