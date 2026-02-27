@@ -25,7 +25,7 @@ jobs:
         run: npm run build
 
       - name: Unit tests
-        run: npm test
+        run: OPENAI_API_KEY=test npm test
 
       - name: Lint
         run: npm run lint
