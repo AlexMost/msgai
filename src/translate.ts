@@ -27,13 +27,15 @@ export type TranslateOptions = {
 
 const DEFAULT_MODEL = 'gpt-4o';
 
-/** Request entry: either singular (msgid) or plural (msgid_plural). */
-export type TranslateRequestEntry = { msgid: string } | { msgid_plural: string };
+/** Request entry: either singular (msgid) or plural (msgid_plural). Optional msgctxt for gettext context. */
+export type TranslateRequestEntry =
+  | { msgid: string; msgctxt?: string }
+  | { msgid_plural: string; msgctxt?: string };
 
 /** Response entry: same keys as request plus msgstr. For msgid → msgstr is string; for msgid_plural → msgstr is string[]. */
 export type TranslateResponseEntry =
-  | { msgid: string; msgstr: string }
-  | { msgid_plural: string; msgstr: string[] };
+  | { msgid: string; msgstr: string; msgctxt?: string }
+  | { msgid_plural: string; msgstr: string[]; msgctxt?: string };
 
 /** Request payload: translations have only msgid or msgid_plural, no msgstr. */
 export type TranslatePayloadRequest = {
@@ -61,6 +63,7 @@ For each input entry, produce a translation in the corresponding "msgstr" field.
 Each output entry MUST correspond exactly to the matching input entry.
 Do not change, remove, or reorder any "msgid" or "msgid_plural" values.
 Only fill the "msgstr" field.
+If an entry has "msgctxt", leave it unchanged and return it in the output (so same msgids for different contexts are not mixed).
 
 Critical rules:
 
@@ -193,8 +196,13 @@ export type TranslateItem = TranslateRequestEntry;
 /** Result per item: string for singular, string[] for plural. */
 export type TranslationResult = string | string[];
 
-/** .po-style entry input: msgid required, msgid_plural optional (for plural forms). */
-export type PoEntryInput = { msgid: string; msgid_plural?: string; msgstr?: string[] };
+/** .po-style entry input: msgid required, msgid_plural optional (for plural forms), msgctxt optional (gettext context). */
+export type PoEntryInput = {
+  msgid: string;
+  msgid_plural?: string;
+  msgstr?: string[];
+  msgctxt?: string;
+};
 
 /** .po-style entry output: same shape as input with msgstr filled (string for singular, string[] for plural). */
 export type PoEntryOutput =
@@ -240,9 +248,11 @@ export async function translateStrings(
 ): Promise<PoEntryOutput[]> {
   if (entries.length === 0) return [];
 
-  const items: TranslateItem[] = entries.map((e) =>
-    e.msgid_plural != null ? { msgid_plural: e.msgid_plural } : { msgid: e.msgid },
-  );
+  const items: TranslateItem[] = entries.map((e) => {
+    const base =
+      e.msgid_plural != null ? { msgid_plural: e.msgid_plural } : { msgid: e.msgid };
+    return e.msgctxt !== undefined ? { ...base, msgctxt: e.msgctxt } : base;
+  });
   const results = await translateItems(items, targetLanguage, options);
 
   return entries.map((entry, i) => {

@@ -75,9 +75,10 @@ export function getEntriesToTranslate(parsedPo: GetTextTranslations): {
           msgid: entry.msgid,
           msgid_plural: entry.msgid_plural,
           msgstr: entry.msgstr.slice(),
+          msgctxt: context,
         });
       } else {
-        entries.push({ msgid: entry.msgid });
+        entries.push({ msgid: entry.msgid, msgctxt: context });
       }
       keys.push({ context, msgid });
     }

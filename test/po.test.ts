@@ -85,7 +85,7 @@ msgstr ""
   const { entries, keys } = getEntriesToTranslate(parsed);
   tempPo.cleanup();
   expect(entries).toHaveLength(1);
-  expect(entries[0]).toEqual({ msgid: 'Hello' });
+  expect(entries[0]).toEqual({ msgid: 'Hello', msgctxt: '' });
   expect(keys).toHaveLength(1);
   expect(keys[0]).toEqual({ context: '', msgid: 'Hello' });
 });
@@ -192,4 +192,35 @@ msgstr "Привіт"
   const reparsed = po.parse(fs.readFileSync(outPath));
   expect(reparsed.translations['']['Hello'].msgstr).toEqual(['Привіт']);
   tempPo.cleanup();
+});
+
+test('same msgid with different contexts: only untranslated entry is updated by applyTranslations', () => {
+  const parsed = po.parse(
+    Buffer.from(
+      `
+msgid ""
+msgstr ""
+"Language: uk\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+
+msgctxt "auth"
+msgid "Hello"
+msgstr "Вітаємо"
+
+msgid "Hello"
+msgstr ""
+`,
+      'utf8',
+    ),
+  );
+  const { entries, keys } = getEntriesToTranslate(parsed);
+  expect(entries).toHaveLength(1);
+  expect(entries[0]).toEqual({ msgid: 'Hello', msgctxt: '' });
+  expect(keys).toHaveLength(1);
+  expect(keys[0]).toEqual({ context: '', msgid: 'Hello' });
+
+  applyTranslations(parsed, keys, [{ msgid: 'Hello', msgstr: 'Привіт' }]);
+
+  expect(parsed.translations['auth']['Hello'].msgstr).toEqual(['Вітаємо']);
+  expect(parsed.translations['']['Hello'].msgstr).toEqual(['Привіт']);
 });
