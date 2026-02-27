@@ -2,6 +2,8 @@
 
 `msgai` is a Node.js CLI that **automatically translates all untranslated strings in gettext (`.po`) files using AI (LLM)**. It reads your `.po` file, detects entries with empty or missing translations, sends them to an LLM (OpenAI), and writes the translations back into the file.
 
+**Install:** `npm install -g msgai-cli` (then run `msgai`).
+
 ## Usage
 
 ### Commands
