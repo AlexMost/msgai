@@ -58,9 +58,10 @@ This file defines working instructions for AI coding agents in this repository.
 
 1. Read relevant files before editing.
 2. Implement the smallest change that solves the task.
-3. Run build/tests relevant to the change.
-4. If tests cannot be run, clearly state what was not verified and why.
-5. Summarize changed files and user-visible behavior in the final response.
+3. **After each change**: run `npm run format`, then `npm run lint:format` to ensure formatting is correct. Fix any formatting issues before continuing.
+4. Run build/tests relevant to the change.
+5. If tests cannot be run, clearly state what was not verified and why.
+6. Summarize changed files and user-visible behavior in the final response.
 
 ## Safety and Scope
 
@@ -74,5 +75,5 @@ This file defines working instructions for AI coding agents in this repository.
 - [ ] Does the change match the requested behavior?
 - [ ] Are edge cases covered (especially empty/malformed `.po` content and CLI args)?
 - [ ] Were tests updated/added when behavior changed?
-- [ ] Did build, lint, and tests pass locally?
+- [ ] Did format, lint:format, build, lint, and tests pass locally?
 - [ ] Is the final explanation concise and actionable?
