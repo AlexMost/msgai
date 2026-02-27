@@ -6,7 +6,9 @@ import {
   parsePoContent,
   getEntriesToTranslate,
   applyTranslations,
+  clearFuzzyFromEntries,
   compilePo,
+  isEntryFuzzy,
 } from '../src/po';
 import fs from 'node:fs';
 import { getTmpPo } from './test-utils/getTmpPo';
@@ -223,4 +225,65 @@ msgstr ""
 
   expect(parsed.translations['auth']['Hello'].msgstr).toEqual(['Вітаємо']);
   expect(parsed.translations['']['Hello'].msgstr).toEqual(['Привіт']);
+});
+
+test('getEntriesToTranslate skips fuzzy entries by default (sends only untranslated)', () => {
+  const tempPo = getTmpPo(`
+#, fuzzy
+msgid "Hello"
+msgstr "Старий переклад"
+
+msgid "World"
+msgstr ""
+`);
+  const parsed = parsePoContent(tempPo.poContent);
+  const { entries, keys } = getEntriesToTranslate(parsed);
+  tempPo.cleanup();
+  expect(entries).toHaveLength(1);
+  expect(entries[0].msgid).toBe('World');
+  expect(keys).toHaveLength(1);
+  expect(keys[0].msgid).toBe('World');
+});
+
+test('getEntriesToTranslate with includeFuzzy sends fuzzy entry for translation (with empty msgstr)', () => {
+  const tempPo = getTmpPo(`
+#, fuzzy
+msgid "Hello"
+msgstr "Старий переклад"
+
+msgid "World"
+msgstr ""
+`);
+  const parsed = parsePoContent(tempPo.poContent);
+  const { entries, keys } = getEntriesToTranslate(parsed, { includeFuzzy: true });
+  tempPo.cleanup();
+  expect(entries).toHaveLength(2);
+  const helloEntry = entries.find((e) => e.msgid === 'Hello');
+  const worldEntry = entries.find((e) => e.msgid === 'World');
+  expect(helloEntry).toBeDefined();
+  expect(worldEntry).toBeDefined();
+  expect(helloEntry!.msgstr).toEqual([]);
+  expect(worldEntry!.msgid).toBe('World');
+  expect(keys.map((k) => k.msgid)).toEqual(['Hello', 'World']);
+});
+
+test('clearFuzzyFromEntries removes fuzzy flag from .po after translation', () => {
+  const tempPo = getTmpPo(`
+#, fuzzy
+msgid "Hello"
+msgstr "Старий переклад"
+`);
+  const parsed = parsePoContent(tempPo.poContent);
+  expect(isEntryFuzzy(parsed.translations['']['Hello'])).toBe(true);
+
+  const keys = [{ context: '', msgid: 'Hello' }];
+  applyTranslations(parsed, keys, [{ msgid: 'Hello', msgstr: 'Новий переклад' }]);
+  clearFuzzyFromEntries(parsed, keys);
+
+  expect(parsed.translations['']['Hello'].msgstr).toEqual(['Новий переклад']);
+  expect(isEntryFuzzy(parsed.translations['']['Hello'])).toBe(false);
+
+  const compiled = compilePo(parsed).toString('utf8');
+  expect(compiled).not.toMatch(/#,\s*fuzzy/);
+  tempPo.cleanup();
 });

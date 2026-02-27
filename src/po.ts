@@ -40,6 +40,15 @@ function isEntryUntranslated(entry: { msgstr: string[] }): boolean {
   return msgstr.length === 0 || msgstr.every((s) => typeof s !== 'string' || s.trim() === '');
 }
 
+/** Returns true if the entry has the fuzzy flag (e.g. "#, fuzzy" in PO). */
+export function isEntryFuzzy(
+  entry: { comments?: { flag?: string } },
+): boolean {
+  const flag = entry.comments?.flag;
+  if (flag == null || typeof flag !== 'string') return false;
+  return flag.split(',').some((s) => s.trim().toLowerCase() === 'fuzzy');
+}
+
 /**
  * Parses PO content and returns the gettext structure.
  */
@@ -47,14 +56,24 @@ export function parsePoContent(poContent: string): GetTextTranslations {
   return po.parse(Buffer.from(poContent, 'utf8'));
 }
 
+export type GetEntriesToTranslateOptions = {
+  /** If true, include entries marked as fuzzy (pass them with empty msgstr to LLM). Default false = skip fuzzy. */
+  includeFuzzy?: boolean;
+};
+
 /**
  * Returns untranslated entries and their keys in stable order (contexts and msgids sorted).
  * Skips the header (msgid "").
+ * By default skips fuzzy entries; set includeFuzzy to include them (with empty msgstr for the request).
  */
-export function getEntriesToTranslate(parsedPo: GetTextTranslations): {
+export function getEntriesToTranslate(
+  parsedPo: GetTextTranslations,
+  options?: GetEntriesToTranslateOptions,
+): {
   entries: PoEntryInput[];
   keys: PoEntryKey[];
 } {
+  const includeFuzzy = options?.includeFuzzy === true;
   const entries: PoEntryInput[] = [];
   const keys: PoEntryKey[] = [];
   const translations: GetTextTranslationRecord = parsedPo.translations;
@@ -68,17 +87,26 @@ export function getEntriesToTranslate(parsedPo: GetTextTranslations): {
       if (msgid === '') continue;
       const entry = contextEntries[msgid];
       if (entry == null || !entry.msgid) continue;
-      if (!isEntryUntranslated(entry)) continue;
+
+      const untranslated = isEntryUntranslated(entry);
+      const fuzzy = isEntryFuzzy(entry);
+      const include =
+        untranslated || (includeFuzzy && fuzzy);
+      if (!include) continue;
 
       if (entry.msgid_plural != null) {
         entries.push({
           msgid: entry.msgid,
           msgid_plural: entry.msgid_plural,
-          msgstr: entry.msgstr.slice(),
+          msgstr: fuzzy && !untranslated ? [] : entry.msgstr.slice(),
           msgctxt: context,
         });
       } else {
-        entries.push({ msgid: entry.msgid, msgctxt: context });
+        entries.push({
+          msgid: entry.msgid,
+          msgctxt: context,
+          ...(fuzzy && !untranslated ? { msgstr: [] } : {}),
+        });
       }
       keys.push({ context, msgid });
     }
@@ -109,6 +137,36 @@ export function applyTranslations(
       entry.msgstr = [result.msgstr];
     } else {
       entry.msgstr = result.msgstr.slice();
+    }
+  }
+}
+
+/**
+ * Removes the "fuzzy" flag from entries at the given keys (mutates parsedPo.translations).
+ * Used after applying new translations so fuzzy entries are no longer marked fuzzy.
+ */
+export function clearFuzzyFromEntries(
+  parsedPo: GetTextTranslations,
+  keys: PoEntryKey[],
+): void {
+  for (const key of keys) {
+    const contextEntries = parsedPo.translations[key.context];
+    if (contextEntries == null) continue;
+    const entry = contextEntries[key.msgid];
+    if (entry == null || !entry.comments?.flag) continue;
+
+    const newFlag = entry.comments.flag
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.toLowerCase() !== 'fuzzy')
+      .join(', ');
+    if (newFlag === '') {
+      delete entry.comments!.flag;
+      if (Object.keys(entry.comments!).length === 0) {
+        delete entry.comments;
+      }
+    } else {
+      entry.comments!.flag = newFlag;
     }
   }
 }

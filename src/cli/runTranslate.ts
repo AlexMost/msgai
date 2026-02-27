@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import { getExamples } from 'plural-forms';
 import {
-  getUntranslatedMsgids,
   parsePoContent,
   getEntriesToTranslate,
   applyTranslations,
+  clearFuzzyFromEntries,
   compilePo,
   getLanguage,
   getPluralForms,
@@ -19,17 +19,19 @@ export type TranslateCommandArgs = {
   dryRun: boolean;
   apiKey?: string;
   sourceLang?: string;
+  includeFuzzy?: boolean;
 };
 
 export async function runTranslate(
   poFilePath: string,
   apiKey: string,
   sourceLang?: string,
+  includeFuzzy?: boolean,
 ): Promise<number> {
   try {
     const poContent = fs.readFileSync(poFilePath, 'utf8');
     const parsedPo = parsePoContent(poContent);
-    const { entries, keys } = getEntriesToTranslate(parsedPo);
+    const { entries, keys } = getEntriesToTranslate(parsedPo, { includeFuzzy });
 
     if (entries.length === 0) {
       console.log(`Nothing to translate in ${poFilePath}.`);
@@ -69,6 +71,9 @@ export async function runTranslate(
     }
 
     applyTranslations(parsedPo, keys, allResults);
+    if (includeFuzzy) {
+      clearFuzzyFromEntries(parsedPo, keys);
+    }
     fs.writeFileSync(poFilePath, compilePo(parsedPo), undefined);
     return 0;
   } catch (error) {
@@ -78,7 +83,8 @@ export async function runTranslate(
   }
 }
 
-const USAGE = 'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]';
+const USAGE =
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   if (!args.poFilePath) {
@@ -105,15 +111,18 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       console.error(message.replace('pass apiKey in options', 'pass --api-key'));
       return 1;
     }
-    return runTranslate(args.poFilePath, resultApiKey, args.sourceLang);
+    return runTranslate(args.poFilePath, resultApiKey, args.sourceLang, args.includeFuzzy);
   }
 
   try {
     const poContent = fs.readFileSync(args.poFilePath, 'utf8');
     const parsedPo = parsePoContent(poContent);
-    const untranslatedMsgids = getUntranslatedMsgids(parsedPo);
+    const { entries } = getEntriesToTranslate(parsedPo, {
+      includeFuzzy: args.includeFuzzy,
+    });
+    const msgidsToShow = entries.map((e) => e.msgid);
 
-    for (const msgid of untranslatedMsgids) {
+    for (const msgid of msgidsToShow) {
       console.log(msgid);
     }
     return 0;

@@ -10,6 +10,11 @@
 - `msgai <file.po> --dry-run`: only lists untranslated `msgid` values (no API calls, no file changes).
 - `msgai --help`: prints command usage.
 
+### Fuzzy entries
+
+- By default, entries marked as **fuzzy** in the `.po` file (e.g. `#, fuzzy`) are **skipped** and not sent for translation.
+- **`--include-fuzzy`**: include fuzzy entries. They are sent to the LLM with empty `msgstr` (like untranslated strings). After the translation is applied, the fuzzy flag is removed from those entries in the `.po` file.
+
 ### Source language
 
 - **`--source-lang LANG`**: source language of `msgid` strings as an ISO 639-1 code (e.g. `en`, `uk`). If omitted, the model will infer the source language. Invalid codes cause the CLI to exit with an error.

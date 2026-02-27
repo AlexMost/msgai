@@ -10,6 +10,7 @@ type CliArgs = {
   help: boolean;
   apiKey?: string;
   sourceLang?: string;
+  includeFuzzy?: boolean;
   error?: string;
 };
 
@@ -17,10 +18,15 @@ function parseArgs(argv: string[]): CliArgs {
   try {
     const parsedArgs = yargs(argv)
       .scriptName('msgai')
-      .usage('Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]')
+      .usage('Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]')
       .option('dry-run', {
         type: 'boolean',
         default: false,
+      })
+      .option('include-fuzzy', {
+        type: 'boolean',
+        default: false,
+        description: 'Include fuzzy entries for translation (re-translate and clear fuzzy flag)',
       })
       .option('api-key', {
         type: 'string',
@@ -61,6 +67,7 @@ function parseArgs(argv: string[]): CliArgs {
         help: Boolean(parsedArgs.help),
         apiKey: parsedArgs['api-key'],
         sourceLang,
+        includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
     }
@@ -71,6 +78,7 @@ function parseArgs(argv: string[]): CliArgs {
       help: Boolean(parsedArgs.help),
       apiKey: parsedArgs['api-key'],
       sourceLang,
+      includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -78,7 +86,7 @@ function parseArgs(argv: string[]): CliArgs {
   }
 }
 
-const USAGE = 'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]';
+const USAGE = 'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]';
 
 function main(argv: string[]): number | undefined {
   const args = parseArgs(argv);
@@ -99,6 +107,7 @@ function main(argv: string[]): number | undefined {
     dryRun: args.dryRun,
     apiKey: args.apiKey,
     sourceLang: args.sourceLang,
+    includeFuzzy: args.includeFuzzy,
   });
 
   if (result instanceof Promise) {
