@@ -47,7 +47,7 @@ npm install
 
 ### Commit messages
 
-This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages: use `feat:` for new features, `fix:` for bug fixes, optional scope (e.g. `feat(cli):`), and `BREAKING CHANGE:` or `!` for major changes. This drives version bumps and CHANGELOG updates via release-please.
+This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages: use `feat:` for new features, `fix:` for bug fixes, optional scope (e.g. `feat(cli):`), and `BREAKING CHANGE:` or `!` for major changes.
 
 ### Scripts
 
@@ -59,13 +59,8 @@ This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/
 
 ## Publishing
 
-Releases are driven by [release-please](https://github.com/googleapis/release-please): it opens a **Release PR** that bumps the version and updates `CHANGELOG.md` from conventional commits. After the Release PR is merged, release-please creates the release tag on `main`.
-
-**Release-please setup:** In the repo go to **Settings → Actions → General → Workflow permissions** and set to **Read and write** and enable **Allow GitHub Actions to create and approve pull requests**. You can then use the default `GITHUB_TOKEN` (no secret). If you see "Error adding to tree" or PR creation blocked, add a Personal Access Token as secret `RELEASE_PLEASE_TOKEN` (classic: `repo` + `workflow` scope; fine-grained: Contents + Pull requests + Workflows write).
-
 **Publishing to npm (local):**
 
-1. Pull `main` with the new release tag.
-2. Run `npm publish`.
-
-Before publishing, `prepublishOnly` runs build, unit tests, integration tests, lint, and format checks. Set `OPENAI_API_KEY` so integration tests pass.
+1. Bump version in `package.json` and update `CHANGELOG.md` as needed.
+2. Commit, tag (e.g. `git tag v1.2.3`), and push.
+3. Run `npm publish`.
