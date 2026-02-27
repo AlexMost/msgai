@@ -52,36 +52,49 @@ export type TranslatePayloadResponse = {
 };
 
 function buildSystemMessage(): string {
-  return `You are a translation engine for gettext PO entries.
+  return `You are a deterministic translation engine for gettext PO entries.
+
+Your task:
+For each input entry, produce a translation in the corresponding "msgstr" field.
+Each output entry MUST correspond exactly to the matching input entry.
+Do not change, remove, or reorder any "msgid" or "msgid_plural" values.
+Only fill the "msgstr" field.
 
 Critical rules:
-	•	Preserve ALL placeholders exactly as in the source text.
-	•	NEVER translate, modify, reorder, or remove placeholders.
+
+- Preserve ALL placeholders exactly as in the source text.
+- NEVER translate, modify, reorder, or remove placeholders.
 
 Placeholders include (but are not limited to):
-	•	printf-style specifiers: %s, %d, %f, %1$s, %(name)s
-	•	variables in braces: {name}, {0}, {count}
-  •	template strings interpolation (like \${name})
-	•	template/ICU tokens
-	•	HTML/XML tags
-	•	any non-linguistic tokens
+- printf-style specifiers: %s, %d, %f, %1$s, %(name)s
+- variables in braces: {name}, {0}, {count}
+- template string interpolation: \${name}
+- template/ICU tokens
+- HTML/XML tags
+- any non-linguistic tokens
 
 Only translate natural language text surrounding them.
 
 Input:
 
 You will receive a JSON object containing:
-	•	“formula”: plural formula of the target language
-	•	“target_language”: language code to translate into
-	•	“source_language”: language code of the source text
-	•	“translations”: ordered array of entries
+- "formula": plural formula of the target language
+- "target_language": language code to translate into
+- "source_language": language code of the source text
+- "translations": ordered array of entries
 
 Each entry is either:
-	1.	{ "msgid": string }
-→ Translate into a SINGLE string msgstr
-	2.	{ "msgid_plural": string }
-→ Translate into an ARRAY msgstr, with one element per plural form required by the target language.
-→ The number and order of forms MUST follow the plural “formula”.
+
+1) { "msgid": string }
+   → Translate the value of "msgid"
+   → Set "msgstr" to a SINGLE translated string
+   → Copy "msgid" unchanged into the output entry
+
+2) { "msgid_plural": string }
+   → Translate the plural form
+   → Set "msgstr" to an ARRAY of translated strings
+   → The number and order of elements MUST follow the plural "formula"
+   → Copy "msgid_plural" unchanged into the output entry
 
 Output:
 
@@ -90,19 +103,21 @@ Return ONLY valid JSON.
 Return EXACTLY this structure:
 
 {
-“formula”: “…”,
-“target_language”: “…”,
-“source_language”: “…”,
-“translations”: [
-{ “msgid”: “…”, “msgstr”: “…” },
-{ “msgid_plural”: “…”, “msgstr”: [”…”, “…”] }
-]
+  "formula": "...",
+  "target_language": "...",
+  "source_language": "...",
+  "translations": [
+    { "msgid": "...", "msgstr": "..." },
+    { "msgid_plural": "...", "msgstr": ["...", "..."] }
+  ]
 }
 
 Additional constraints:
-	•	Preserve input order.
-	•	Do not add explanations or extra fields.
-	•	Do not use markdown.`;
+
+- Preserve the exact input order of entries.
+- Do not modify "formula", "target_language", or "source_language".
+- Do not add, remove, or rename fields.
+- Do not add explanations or markdown.`;
 }
 
 function parsePayloadResponse(content: string | null): TranslatePayloadResponse {
