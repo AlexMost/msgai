@@ -37,6 +37,14 @@ This file defines working instructions for AI coding agents in this repository.
   - Exit code `0` on success, non-zero on error paths.
 - Avoid introducing new dependencies unless necessary.
 
+## Commit conventions
+
+- Commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) spec.
+- Use `feat:` for new features (minor version), `fix:` for bug fixes (patch), optional scope in parentheses (e.g. `feat(cli): add option`).
+- Use `BREAKING CHANGE:` in the footer or `!` after type/scope (e.g. `feat!: change default`) for major changes.
+- Other types (e.g. `docs:`, `chore:`, `test:`) are allowed but do not affect the version bump; see the spec for the full format.
+- When suggesting or describing commits, use conventional commit messages.
+
 ## Testing Expectations
 
 - **Unit tests** (`test/`): Must not trigger the real API. Use mocks (e.g. mock `translate` or the OpenAI client) so `npm test` runs without network or API keys.

@@ -43,6 +43,10 @@ On API errors (e.g. rate limit, quota, server errors), the CLI shows a status-sp
 npm install
 ```
 
+### Commit messages
+
+This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages: use `feat:` for new features, `fix:` for bug fixes, optional scope (e.g. `feat(cli):`), and `BREAKING CHANGE:` or `!` for major changes. This drives version bumps and CHANGELOG updates via release-please.
+
 ### Scripts
 
 - `npm run build`: compile TypeScript to `dist/`.
@@ -50,3 +54,14 @@ npm install
 - `npm run test:watch`: build project and run Jest in watch mode.
 - `npm run format`: format code with Prettier.
 - `npm run lint:format`: check formatting with Prettier.
+
+## Publishing
+
+Releases are driven by [release-please](https://github.com/googleapis/release-please): it opens a **Release PR** that bumps the version and updates `CHANGELOG.md` from conventional commits. After the Release PR is merged, release-please creates the release tag on `main`.
+
+**Publishing to npm (local):**
+
+1. Pull `main` with the new release tag.
+2. Run `npm publish`.
+
+Before publishing, `prepublishOnly` runs build, unit tests, integration tests, lint, and format checks. Set `OPENAI_API_KEY` so integration tests pass.

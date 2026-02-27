@@ -14,13 +14,16 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "lint:format": "prettier --check .",
-    "script:test-openai": "ts-node scripts/test-openai.ts"
+    "script:test-openai": "ts-node scripts/test-openai.ts",
+    "prepublishOnly": "npm run build && npm test && npm run test:integration && npm run lint && npm run lint:format"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AlexMost/msgai.git"
   },
-  "keywords": [],
+  "keywords": ["gettext", "po", "translate", "openai", "cli", "i18n"],
+  "engines": {"node": ">=20", "npm": ">=10"},
+  "files": ["dist/src", "README.md", "CHANGELOG.md"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
