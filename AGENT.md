@@ -51,15 +51,16 @@ This file defines working instructions for AI coding agents in this repository.
 - **Integration tests** (`test-integration/`): Must trigger the real API (no mocks). They run the full flow and may require `OPENAI_API_KEY`; see `npm run test:integration`.
 - **Every exported function** must have at least one unit test (in `test/`). When adding or changing exports, add or update the corresponding tests.
 - For functional changes, update or add tests in `test/`.
-- At minimum, run `npm run format`, `npm run lint`, `npm run lint:format` and `npm test` after meaningful code edits.
+- At minimum, run `npm run format`, `npm run lint`, and `npm test` before committing changes.
+- Run `npm run lint:format` when you need a non-mutating formatting check.
 - For CLI behavior updates, prefer integration-style tests similar to `test/cli/dry-run.test.ts`.
 
 ## Agent Workflow
 
 1. Read relevant files before editing.
 2. Implement the smallest change that solves the task.
-3. **After each change**: run `npm run format`, then `npm run lint:format` to ensure formatting is correct. Fix any formatting issues before continuing.
-4. Run build/tests relevant to the change.
+3. Before committing, run `npm run format`, then `npm run lint`, then `npm run test`.
+4. Run any additional checks relevant to the change.
 5. If tests cannot be run, clearly state what was not verified and why.
 6. Summarize changed files and user-visible behavior in the final response.
 
@@ -67,6 +68,7 @@ This file defines working instructions for AI coding agents in this repository.
 
 - Do not modify unrelated files.
 - Do not commit or push unless explicitly requested.
+- Before committing, run `npm run format`, `npm run lint`, and `npm run test`.
 - Do not change project-wide tooling/config unless required by the task.
 - Flag ambiguous requirements before making irreversible changes.
 
@@ -75,5 +77,5 @@ This file defines working instructions for AI coding agents in this repository.
 - [ ] Does the change match the requested behavior?
 - [ ] Are edge cases covered (especially empty/malformed `.po` content and CLI args)?
 - [ ] Were tests updated/added when behavior changed?
-- [ ] Did format, lint:format, build, lint, and tests pass locally?
+- [ ] Did `npm run format`, `npm run lint`, and `npm run test` pass before commit?
 - [ ] Is the final explanation concise and actionable?

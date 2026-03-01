@@ -451,18 +451,16 @@ test('translatePayload throws when plural msgstr length does not match plural_sa
       { plural: 2, sample: 5 },
     ],
   };
-  const createMock = jest
-    .fn<(params: unknown) => Promise<unknown>>()
-    .mockResolvedValue(
-      mockCompletion(
-        JSON.stringify({
-          translations: [{ msgid_plural: '%d items', msgstr: ['%d елемент', '%d елементи'] }],
-        }),
-      ),
-    );
+  const createMock = jest.fn<(params: unknown) => Promise<unknown>>().mockResolvedValue(
+    mockCompletion(
+      JSON.stringify({
+        translations: [{ msgid_plural: '%d items', msgstr: ['%d елемент', '%d елементи'] }],
+      }),
+    ),
+  );
   const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
 
-  await expect(translatePayload(payload, { apiKey: 'test-key', client: mockClient })).rejects.toThrow(
-    /length 3/i,
-  );
+  await expect(
+    translatePayload(payload, { apiKey: 'test-key', client: mockClient }),
+  ).rejects.toThrow(/length 3/i);
 });
