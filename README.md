@@ -47,6 +47,7 @@ The translation API uses OpenAI `json_schema` structured outputs. Only models th
 - `gpt-5.2-codex`
 
 Dated snapshots are accepted where the model family supports them.
+
 </details>
 
 By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
@@ -116,5 +117,46 @@ Useful scripts:
 - `npm run lint`: run ESLint
 - `npm run lint:format`: check formatting with Prettier
 - `npm run format`: format the repository with Prettier
+- `npm run release:dry-run`: preview the `commit-and-tag-version` release without writing files
+- `npm run release`: run release checks, update `CHANGELOG.md`, bump the npm version, create a release commit, and create a local tag
 
 This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages.
+
+### Release Flow
+
+Maintainer releases are local-first and use `commit-and-tag-version`. The release command does not publish to npm or push tags for you.
+
+Preview the next release:
+
+```bash
+npm run release:dry-run
+```
+
+Create the release locally:
+
+```bash
+npm run release
+```
+
+This command:
+
+- runs `build`, unit tests, integration tests, lint, and formatting checks through the `prerelease` lifecycle hook
+- lets `commit-and-tag-version` infer `major`, `minor`, or `patch` from Conventional Commits since the latest `v*` tag
+- updates `CHANGELOG.md`
+- creates `chore(release): X.Y.Z`
+- creates a local annotated tag `vX.Y.Z`
+
+For reliable version bumps and changelog entries, keep commits in Conventional Commit format.
+
+If you need to override the inferred bump manually:
+
+```bash
+npm run release -- --release-as minor
+```
+
+After the local release is created:
+
+```bash
+git push --follow-tags
+npm publish
+```

@@ -2,7 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+## 1.0.2 (2026-02-27)
+
+### Bug Fixes
+
+- **po:** preserve PO file order in `getEntriesToTranslate` ([55ba8d8](https://github.com/AlexMost/msgai/commit/55ba8d8c4c43d26adf4d1e23fa5dac2bebbf2052))
+
+## 1.0.1 (2026-02-27)
+
+### Documentation
+
+- run formatter after each change and verify formatting in agent workflow ([1a1d909](https://github.com/AlexMost/msgai/commit/1a1d9097f9a88f6b260f5564fc6c800b52ea95a3))
+
+### Chores
+
+- clean `dist` folder before each build ([0e65234](https://github.com/AlexMost/msgai/commit/0e652342d076867d1795b69ca1cb07d7988b92d2))
+- fix formatting ([0cb5742](https://github.com/AlexMost/msgai/commit/0cb5742452f37f03a292f70ff6acc433f6f3666f))
 
 ## 1.0.0 (2026-02-27)
 
@@ -17,16 +32,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **ci:** use github.event.workflow_run.conclusion in release-please ([0892b17](https://github.com/AlexMost/msgai/commit/0892b17aad1ec95a4e96a8208cb31d197264830f))
 - **ci:** use RELEASE_PLEASE_TOKEN so release-please can create PRs ([204c6cd](https://github.com/AlexMost/msgai/commit/204c6cdf88d480decae841f91c9fae168c4c0ce9))
 - use console.warn instead of console.error for pipeline compatibility ([8b30ebf](https://github.com/AlexMost/msgai/commit/8b30ebffba7c7447db3f51d931398938c39b6b85))
-
-## [Unreleased]
-
-## [1.0.0] - 2025-02-27
-
-### Added
-
-- CLI to translate untranslated strings in gettext (`.po`) files using AI (OpenAI LLM)
-- `msgai <file.po>`: translate empty `msgstr` entries and write back to the file
-- `--dry-run`: list untranslated `msgid` values without API calls or file changes
-- `--source-lang LANG`: specify source language (ISO 639-1); optional, model can infer
-- `--include-fuzzy`: include fuzzy entries for re-translation and clear fuzzy flag
-- `--api-key KEY` and `OPENAI_API_KEY` environment variable for API authentication

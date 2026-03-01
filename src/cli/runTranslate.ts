@@ -158,7 +158,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
   if (args.model != null) {
     try {
       validateModel(args.model);
-    } catch (error) {
+    } catch {
       console.warn(getInvalidModelMessage(args.model));
       return 1;
     }
@@ -173,7 +173,13 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       console.warn(message.replace('pass apiKey in options', 'pass --api-key'));
       return 1;
     }
-    return runTranslate(args.poFilePath, resultApiKey, args.sourceLang, args.model, args.includeFuzzy);
+    return runTranslate(
+      args.poFilePath,
+      resultApiKey,
+      args.sourceLang,
+      args.model,
+      args.includeFuzzy,
+    );
   }
 
   try {
