@@ -21,7 +21,6 @@ test('translatePayload sends request with msgid only and receives response with 
     translations: [{ msgid: 'Hello' }, { msgid: 'World' }],
   };
   const responsePayload = {
-    ...payload,
     translations: [
       { msgid: 'Hello', msgstr: 'Привіт' },
       { msgid: 'World', msgstr: 'Світ' },
@@ -36,8 +35,25 @@ test('translatePayload sends request with msgid only and receives response with 
 
   expect(result).toEqual(responsePayload);
   expect(createMock).toHaveBeenCalledTimes(1);
-  type CreateParams = { model: string; messages: Array<{ role: string; content?: string }> };
+  type CreateParams = {
+    model: string;
+    temperature?: number;
+    response_format?: {
+      type: string;
+      json_schema?: { name?: string; strict?: boolean; schema?: { type?: string } };
+    };
+    messages: Array<{ role: string; content?: string }>;
+  };
   const params = createMock.mock.calls[0]?.[0] as CreateParams;
+  expect(params.temperature).toBe(0);
+  expect(params.response_format).toMatchObject({
+    type: 'json_schema',
+    json_schema: {
+      name: 'translation_payload',
+      strict: true,
+      schema: { type: 'object' },
+    },
+  });
   expect(params.messages![0].content as string).toContain('target_language');
   expect(params.messages![0].content as string).toMatch(/msgid|msgid_plural/);
   const userJson = JSON.parse(params.messages![1].content as string);
@@ -48,9 +64,6 @@ test('translatePayload sends request with msgid only and receives response with 
 
 test('translateStrings with singular entries uses msgid and returns entries with msgstr', async () => {
   const responsePayload = {
-    formula: '',
-    target_language: 'uk',
-    source_language: 'en',
     translations: [{ msgid: 'Hello', msgstr: 'Привіт' }],
   };
   const createMock = jest
@@ -73,9 +86,6 @@ test('translateStrings with singular entries uses msgid and returns entries with
 
 test('translateStrings with plural entries uses msgid_plural and returns entries with msgstr array', async () => {
   const responsePayload = {
-    formula: '',
-    target_language: 'uk',
-    source_language: 'en',
     translations: [
       { msgid_plural: 'Hello', msgstr: ['Привіт'] },
       { msgid_plural: 'World', msgstr: ['Світ'] },
@@ -155,11 +165,68 @@ test('translatePayload throws when response missing translations', async () => {
   ).rejects.toThrow(/translations/i);
 });
 
+test('translatePayload rejects unsupported models before calling OpenAI', async () => {
+  const createMock = jest.fn<(params: unknown) => Promise<unknown>>();
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await expect(
+    translatePayload(
+      {
+        formula: '',
+        target_language: 'uk',
+        source_language: 'en',
+        translations: [{ msgid: 'Hi' }],
+      },
+      { apiKey: 'test-key', client: mockClient, model: 'gpt-4-turbo' },
+    ),
+  ).rejects.toThrow(/json_schema structured outputs|supported models/i);
+
+  expect(createMock).not.toHaveBeenCalled();
+});
+
+test('translatePayload allows supported GPT-5 structured-output models', async () => {
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValue(
+      mockCompletion(JSON.stringify({ translations: [{ msgid: 'Hi', msgstr: 'Привіт' }] })),
+    );
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  const result = await translatePayload(
+    {
+      formula: '',
+      target_language: 'uk',
+      source_language: 'en',
+      translations: [{ msgid: 'Hi' }],
+    },
+    { apiKey: 'test-key', client: mockClient, model: 'gpt-5.2' },
+  );
+
+  expect(result.translations[0]?.msgstr).toBe('Привіт');
+  expect(createMock).toHaveBeenCalledTimes(1);
+});
+
+test('translatePayload rejects GPT-5.2 models without structured outputs support', async () => {
+  const createMock = jest.fn<(params: unknown) => Promise<unknown>>();
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await expect(
+    translatePayload(
+      {
+        formula: '',
+        target_language: 'uk',
+        source_language: 'en',
+        translations: [{ msgid: 'Hi' }],
+      },
+      { apiKey: 'test-key', client: mockClient, model: 'gpt-5.2-pro' },
+    ),
+  ).rejects.toThrow(/not supported/i);
+
+  expect(createMock).not.toHaveBeenCalled();
+});
+
 test('translateItems sends items and returns translated strings in same order', async () => {
   const responsePayload = {
-    formula: '',
-    target_language: 'uk',
-    source_language: 'en',
     translations: [
       { msgid: 'Hello', msgstr: 'Привіт' },
       { msgid: 'World', msgstr: 'Світ' },
@@ -190,7 +257,6 @@ test('translatePayload request with msgid_plural: response msgstr is array', asy
     translations: [{ msgid: 'Hello' }, { msgid_plural: '%d items' }],
   };
   const responsePayload = {
-    ...payload,
     translations: [
       { msgid: 'Hello', msgstr: 'Привіт' },
       { msgid_plural: '%d items', msgstr: ['%d елемент', '%d елементи', '%d елементів'] },
@@ -226,7 +292,6 @@ test('translatePayload with plural_samples includes them in user message and sys
     plural_samples: pluralSamples,
   };
   const responsePayload = {
-    ...payload,
     translations: [
       { msgid_plural: '%d items', msgstr: ['%d елемент', '%d елементи', '%d елементів'] },
     ],
@@ -238,10 +303,17 @@ test('translatePayload with plural_samples includes them in user message and sys
 
   await translatePayload(payload, { apiKey: 'test-key', client: mockClient });
 
-  type CreateParams = { messages: Array<{ role: string; content?: string }> };
+  type CreateParams = {
+    response_format?: { type: string; json_schema?: { name?: string } };
+    messages: Array<{ role: string; content?: string }>;
+  };
   const params = createMock.mock.calls[0]?.[0] as CreateParams;
   const userJson = JSON.parse(params.messages![1].content as string);
   expect(userJson.plural_samples).toEqual(pluralSamples);
+  expect(params.response_format).toMatchObject({
+    type: 'json_schema',
+    json_schema: { name: 'translation_payload' },
+  });
   expect(params.messages![0].content as string).toMatch(/plural_samples|sample/);
 });
 
@@ -252,9 +324,6 @@ test('translateStrings with pluralSamples option passes plural_samples in payloa
     { plural: 2, sample: 5 },
   ];
   const responsePayload = {
-    formula: '',
-    target_language: 'uk',
-    source_language: 'en',
     translations: [{ msgid_plural: '%d banana', msgstr: ['%d банан', '%d банана', '%d бананів'] }],
   };
   const createMock = jest
@@ -290,9 +359,6 @@ function apiError(
 
 test('translatePayload retries on 429 then succeeds', async () => {
   const responsePayload = {
-    formula: '',
-    target_language: 'uk',
-    source_language: 'en',
     translations: [{ msgid: 'Hi', msgstr: 'Привіт' }],
   };
   const createMock = jest
@@ -371,4 +437,32 @@ test('translatePayload does not retry on 403', async () => {
   ).rejects.toMatchObject({ status: 403 });
 
   expect(createMock).toHaveBeenCalledTimes(1);
+});
+
+test('translatePayload throws when plural msgstr length does not match plural_samples length', async () => {
+  const payload = {
+    formula: 'nplurals=3; plural=...',
+    target_language: 'uk',
+    source_language: 'en',
+    translations: [{ msgid_plural: '%d items' }],
+    plural_samples: [
+      { plural: 0, sample: 1 },
+      { plural: 1, sample: 2 },
+      { plural: 2, sample: 5 },
+    ],
+  };
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValue(
+      mockCompletion(
+        JSON.stringify({
+          translations: [{ msgid_plural: '%d items', msgstr: ['%d елемент', '%d елементи'] }],
+        }),
+      ),
+    );
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await expect(translatePayload(payload, { apiKey: 'test-key', client: mockClient })).rejects.toThrow(
+    /length 3/i,
+  );
 });

@@ -24,6 +24,8 @@ Main features:
 3. Send those strings to OpenAI `gpt-4o` for translation while preserving gettext context such as `msgctxt`.
 4. Write the translated values back into the same `.po` file.
 
+The translation API uses OpenAI `json_schema` structured outputs. Supported model families include `gpt-4o`, `gpt-4o-mini`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5-pro`, `gpt-5.1`, `gpt-5.2`, and supported Codex variants. Dated snapshots are accepted where the model family supports them.
+
 By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
 
 ## 📦 Install
@@ -55,6 +57,8 @@ Usage:
 ```bash
 msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]
 ```
+
+Note: the CLI currently uses `gpt-4o` as a hardcoded default model. Selecting a different model via CLI arguments is not supported yet.
 
 Options:
 

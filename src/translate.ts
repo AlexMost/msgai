@@ -18,6 +18,42 @@ export type TranslateOptions = {
 };
 
 const DEFAULT_MODEL = 'gpt-4o';
+const SUPPORTED_STRUCTURED_OUTPUT_MODEL_PATTERNS = [
+  /^gpt-4o(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-4o-mini(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-4\.1(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-4\.1-mini(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-4\.1-nano(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-5(?:-\d{4}-\d{2}-\d{2}|-chat-latest)?$/,
+  /^gpt-5-mini(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-5-nano(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-5-pro(?:-\d{4}-\d{2}-\d{2})?$/,
+  /^gpt-5\.1(?:-\d{4}-\d{2}-\d{2}|-chat-latest)?$/,
+  /^gpt-5\.2(?:-\d{4}-\d{2}-\d{2}|-chat-latest)?$/,
+  /^gpt-5-codex$/,
+  /^gpt-5\.1-codex$/,
+  /^gpt-5\.1-codex-mini$/,
+  /^gpt-5\.1-codex-max$/,
+  /^gpt-5\.2-codex$/,
+] as const;
+const SUPPORTED_STRUCTURED_OUTPUT_MODELS_DESCRIPTION = [
+  'gpt-4o',
+  'gpt-4o-mini',
+  'gpt-4.1',
+  'gpt-4.1-mini',
+  'gpt-4.1-nano',
+  'gpt-5',
+  'gpt-5-mini',
+  'gpt-5-nano',
+  'gpt-5-pro',
+  'gpt-5.1',
+  'gpt-5.2',
+  'gpt-5-codex',
+  'gpt-5.1-codex',
+  'gpt-5.1-codex-mini',
+  'gpt-5.1-codex-max',
+  'gpt-5.2-codex',
+] as const;
 
 /** Error codes: https://developers.openai.com/api/docs/guides/error-codes#api-errors */
 
@@ -39,6 +75,17 @@ function isApiError(err: unknown): err is { status: number; code?: string; messa
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || status === 500 || status === 503;
+}
+
+function isSupportedStructuredOutputModel(model: string): boolean {
+  return SUPPORTED_STRUCTURED_OUTPUT_MODEL_PATTERNS.some((pattern) => pattern.test(model));
+}
+
+function validateStructuredOutputModel(model: string): void {
+  if (isSupportedStructuredOutputModel(model)) return;
+  throw new Error(
+    `Model "${model}" is not supported. This package requires an OpenAI Chat Completions model with json_schema structured outputs. Supported model families: ${SUPPORTED_STRUCTURED_OUTPUT_MODELS_DESCRIPTION.join(', ')}.`,
+  );
 }
 
 /** Request entry: either singular (msgid) or plural (msgid_plural). Optional msgctxt for gettext context. */
@@ -63,26 +110,87 @@ export type TranslatePayloadRequest = {
 
 /** Response payload: translations have msgstr filled. */
 export type TranslatePayloadResponse = {
-  formula: string;
-  target_language: string;
-  source_language: string;
   translations: TranslateResponseEntry[];
 };
+
+const TRANSLATION_RESPONSE_SCHEMA = {
+  name: 'translation_payload',
+  strict: true,
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['translations'],
+    properties: {
+      translations: {
+        type: 'array',
+        items: {
+          anyOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['msgid', 'msgstr'],
+              properties: {
+                msgid: { type: 'string' },
+                msgstr: { type: 'string' },
+              },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['msgid', 'msgctxt', 'msgstr'],
+              properties: {
+                msgid: { type: 'string' },
+                msgctxt: { type: 'string' },
+                msgstr: { type: 'string' },
+              },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['msgid_plural', 'msgstr'],
+              properties: {
+                msgid_plural: { type: 'string' },
+                msgstr: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+              },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['msgid_plural', 'msgctxt', 'msgstr'],
+              properties: {
+                msgid_plural: { type: 'string' },
+                msgctxt: { type: 'string' },
+                msgstr: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+  },
+} as const;
 
 function buildSystemMessage(): string {
   return `You are a deterministic translation engine for gettext PO entries.
 
+Return exactly one JSON object that matches the provided response schema.
+
 Your task:
 For each input entry, produce a translation in the corresponding "msgstr" field.
 Each output entry MUST correspond exactly to the matching input entry.
-Do not change, remove, or reorder any "msgid" or "msgid_plural" values.
+Do not change, remove, or reorder any "msgid", "msgid_plural", or "msgctxt" values.
 Only fill the "msgstr" field.
-If an entry has "msgctxt", leave it unchanged and return it in the output (so same msgids for different contexts are not mixed).
 
 Critical rules:
 
-- Preserve ALL placeholders exactly as in the source text.
-- NEVER translate, modify, reorder, or remove placeholders.
+- Copy ALL placeholders and non-linguistic tokens exactly, byte-for-byte.
+- NEVER translate, modify, reorder, remove, escape, or unescape placeholders.
 
 Placeholders include (but are not limited to):
 - printf-style specifiers: %s, %d, %f, %1$s, %(name)s
@@ -122,22 +230,9 @@ Output:
 
 You MUST respond with nothing but a single JSON object. No markdown, no code fences (no \`\`\`json or \`\`\`), no explanatory text before or after. The response must be parseable by JSON.parse() directly.
 
-Return EXACTLY this structure (and nothing else):
-
-{
-  "formula": "...",
-  "target_language": "...",
-  "source_language": "...",
-  "translations": [
-    { "msgid": "...", "msgstr": "..." },
-    { "msgid_plural": "...", "msgstr": ["...", "..."] }
-  ]
-}
-
 Additional constraints:
 
 - Preserve the exact input order of entries.
-- Do not modify "formula", "target_language", or "source_language".
 - Do not add, remove, or rename fields.`;
 }
 
@@ -149,7 +244,10 @@ function stripJsonFences(raw: string): string {
   return match ? match[1].trim() : trimmed;
 }
 
-function parsePayloadResponse(content: string | null): TranslatePayloadResponse {
+function parsePayloadResponse(
+  request: TranslatePayloadRequest,
+  content: string | null,
+): TranslatePayloadResponse {
   if (content == null || content.trim() === '') {
     throw new Error('Empty response from OpenAI');
   }
@@ -173,6 +271,9 @@ function parsePayloadResponse(content: string | null): TranslatePayloadResponse 
     console.warn('OpenAI model returned (raw):', raw);
     throw new Error(`OpenAI response "translations" must be an array: ${raw.slice(0, 200)}`);
   }
+  if (payload.translations.length !== request.translations.length) {
+    throw new Error('OpenAI response "translations" must have the same number of entries as input');
+  }
   for (let i = 0; i < payload.translations.length; i++) {
     const t = payload.translations[i];
     if (t == null || typeof t !== 'object' || !('msgstr' in t)) {
@@ -181,12 +282,40 @@ function parsePayloadResponse(content: string | null): TranslatePayloadResponse 
     }
     const entry = t as Record<string, unknown>;
     const msgstr = entry.msgstr;
-    if (typeof msgstr === 'string') continue;
-    if (Array.isArray(msgstr) && msgstr.every((s): s is string => typeof s === 'string')) continue;
+    const requestEntry = request.translations[i];
+    const requestContext = requestEntry.msgctxt;
+    if (entry.msgctxt !== requestContext) {
+      throw new Error(`OpenAI response translations[${i}].msgctxt must match the input exactly`);
+    }
+    if ('msgid' in requestEntry) {
+      if (entry.msgid !== requestEntry.msgid) {
+        throw new Error(`OpenAI response translations[${i}].msgid must match the input exactly`);
+      }
+      if ('msgid_plural' in entry) {
+        throw new Error(`OpenAI response translations[${i}] must not include msgid_plural`);
+      }
+      if (typeof msgstr === 'string') continue;
+      console.warn('OpenAI model returned (raw):', raw);
+      throw new Error(`OpenAI response translations[${i}].msgstr must be a string`);
+    }
+    if (entry.msgid_plural !== requestEntry.msgid_plural) {
+      throw new Error(
+        `OpenAI response translations[${i}].msgid_plural must match the input exactly`,
+      );
+    }
+    if ('msgid' in entry) {
+      throw new Error(`OpenAI response translations[${i}] must not include msgid`);
+    }
+    if (Array.isArray(msgstr) && msgstr.every((s): s is string => typeof s === 'string')) {
+      if (request.plural_samples != null && msgstr.length !== request.plural_samples.length) {
+        throw new Error(
+          `OpenAI response translations[${i}].msgstr must have length ${request.plural_samples.length}`,
+        );
+      }
+      continue;
+    }
     console.warn('OpenAI model returned (raw):', raw);
-    throw new Error(
-      `OpenAI response translations[${i}].msgstr must be a string or array of strings`,
-    );
+    throw new Error(`OpenAI response translations[${i}].msgstr must be an array of strings`);
   }
   return payload as TranslatePayloadResponse;
 }
@@ -205,18 +334,24 @@ export async function translatePayload(
       apiKey: options.apiKey,
     });
   const model = options?.model ?? DEFAULT_MODEL;
+  validateStructuredOutputModel(model);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const response = await client.chat.completions.create({
         model,
+        temperature: 0,
+        response_format: {
+          type: 'json_schema',
+          json_schema: TRANSLATION_RESPONSE_SCHEMA,
+        },
         messages: [
           { role: 'system', content: buildSystemMessage() },
           { role: 'user', content: JSON.stringify(payload) },
         ],
       });
       const content = response.choices[0]?.message?.content ?? null;
-      return parsePayloadResponse(content);
+      return parsePayloadResponse(payload, content);
     } catch (err) {
       const shouldRetry = attempt < MAX_RETRIES && isApiError(err) && isRetryableStatus(err.status);
       if (shouldRetry) {
