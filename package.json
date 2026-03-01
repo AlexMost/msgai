@@ -13,6 +13,7 @@
     "test:integration": "npm run build && jest -c jest.integration.config.cjs",
     "test:watch": "npm run build && jest --watch",
     "format": "prettier --write .",
+    "format:changelog": "prettier --write CHANGELOG.md",
     "lint": "eslint .",
     "lint:format": "prettier --check .",
     "prerelease": "npm run build && npm test && npm run test:integration && npm run lint && npm run lint:format",
@@ -51,7 +52,10 @@
   "homepage": "https://github.com/AlexMost/msgai#readme",
   "commit-and-tag-version": {
     "tagPrefix": "v",
-    "releaseCommitMessageFormat": "chore(release): {{currentTag}}"
+    "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
+    "scripts": {
+      "postchangelog": "npm run format:changelog"
+    }
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
