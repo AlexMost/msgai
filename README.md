@@ -1,66 +1,94 @@
 # msgai
 
-`msgai` is a Node.js CLI that **automatically translates all untranslated strings in gettext (`.po`) files using AI (LLM)**. It reads your `.po` file, detects entries with empty or missing translations, sends them to an LLM (OpenAI), and writes the translations back into the file.
+`msgai` is an AI-powered CLI for translating gettext `.po` files. It finds untranslated entries, sends them to an LLM, and writes the translated strings back into the same file.
 
-**Install:** `npm install -g msgai-cli` (then run `msgai`).
+## 🤖 Project Purpose
 
-## Usage
+`msgai` is built for teams that already use gettext and want a simple way to translate missing strings without building a separate localization workflow.
 
-### Commands
+Main features:
 
-- `msgai <file.po>`: translates all untranslated `msgid` / `msgid_plural` entries in the file using AI and updates the `.po` file in place.
-- `msgai <file.po> --dry-run`: only lists untranslated `msgid` values (no API calls, no file changes).
-- `msgai --help`: prints command usage.
+- `📝` Works directly with gettext `.po` files
+- `🤖` Translates only untranslated entries using AI
+- `🧠` Uses OpenAI `gpt-4o` by default for translation
+- `🏷️` Respects gettext context (`msgctxt`) when translating entries
+- `🔁` Supports singular and plural translations
+- `⚠️` Skips fuzzy entries by default
+- `🧭` Can infer source language or use `--source-lang`
+- `💻` Runs as a small CLI that updates files in place
 
-### Fuzzy entries
+## ⚙️ How It Works
 
-- By default, entries marked as **fuzzy** in the `.po` file (e.g. `#, fuzzy`) are **skipped** and not sent for translation.
-- **`--include-fuzzy`**: include fuzzy entries. They are sent to the LLM with empty `msgstr` (like untranslated strings). After the translation is applied, the fuzzy flag is removed from those entries in the `.po` file.
+1. Read the `.po` file and parse its entries.
+2. Find entries with empty or missing translations.
+3. Send those strings to OpenAI `gpt-4o` for translation while preserving gettext context such as `msgctxt`.
+4. Write the translated values back into the same `.po` file.
 
-### Source language
+By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
 
-- **`--source-lang LANG`**: source language of `msgid` strings as an ISO 639-1 code (e.g. `en`, `uk`). If omitted, the model will infer the source language. Invalid codes cause the CLI to exit with an error.
+## 📦 Install
 
-### API key (for translation)
+Install the CLI globally:
 
-When running without `--dry-run`, the CLI needs an OpenAI API key. You can pass it in either of these ways:
+```bash
+npm install -g msgai-cli
+```
 
-- **Environment variable**: set `OPENAI_API_KEY` (e.g. in your shell or a `.env` file in the current directory).
-- **CLI option**: pass `--api-key KEY` (e.g. `msgai messages.po --api-key sk-...`).
+Set your OpenAI API key before running translations:
 
-If neither is set, the CLI exits with code 1 and a message asking you to set the key.
+```bash
+export OPENAI_API_KEY=your_api_key_here
+```
 
-On API errors (e.g. rate limit, quota, server errors), the CLI shows a status-specific message and exits with code 1. For error code reference, see [OpenAI API error codes](https://developers.openai.com/api/docs/guides/error-codes#api-errors).
+You can also pass the key directly:
 
-## Development environment
+```bash
+msgai messages.po --api-key sk-...
+```
 
-### Requirements
+`OPENAI_API_KEY` can be loaded from your environment or from a `.env` file in the current directory.
 
-- Node.js 20+ (recommended latest LTS)
-- npm 10+
+## 💻 CLI Usage
 
-### Setup
+Usage:
+
+```bash
+msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]
+```
+
+Options:
+
+- `--dry-run`: list untranslated `msgid` values only, with no API calls and no file changes
+- `--include-fuzzy`: include fuzzy entries for translation and clear their fuzzy flag after translation
+- `--source-lang LANG`: set the source language of `msgid` strings as an ISO 639-1 code such as `en` or `uk`
+- `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
+- `--help`: print command usage
+
+If no API key is provided for a non-dry run, the CLI exits with code `1` and prints an error message.
+
+On API failures such as rate limits, quota issues, or server errors, the CLI exits with code `1` and shows a status-specific message. For API error details, see [OpenAI API error codes](https://developers.openai.com/api/docs/guides/error-codes#api-errors).
+
+## 🧪 Development
+
+Requirements:
+
+- Node.js `20+`
+- npm `10+`
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### Commit messages
+Useful scripts:
 
-This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages: use `feat:` for new features, `fix:` for bug fixes, optional scope (e.g. `feat(cli):`), and `BREAKING CHANGE:` or `!` for major changes.
+- `npm run build`: compile TypeScript to `dist/`
+- `npm test`: build the project and run Jest tests
+- `npm run test:integration`: run integration tests
+- `npm run test:watch`: run tests in watch mode
+- `npm run lint`: run ESLint
+- `npm run lint:format`: check formatting with Prettier
+- `npm run format`: format the repository with Prettier
 
-### Scripts
-
-- `npm run build`: compile TypeScript to `dist/`.
-- `npm test`: build project and run Jest tests.
-- `npm run test:watch`: build project and run Jest in watch mode.
-- `npm run format`: format code with Prettier.
-- `npm run lint:format`: check formatting with Prettier.
-
-## Publishing
-
-**Publishing to npm (local):**
-
-1. Bump version in `package.json` and update `CHANGELOG.md` as needed.
-2. Commit, tag (e.g. `git tag v1.2.3`), and push.
-3. Run `npm publish`.
+This repo follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages.
