@@ -2,6 +2,7 @@
 
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
+import { getDebugLogger, initDebugLogger } from '../debug';
 import { runTranslateCommand } from './runTranslate';
 
 type CliArgs = {
@@ -12,6 +13,7 @@ type CliArgs = {
   sourceLang?: string;
   model?: string;
   includeFuzzy?: boolean;
+  debug?: boolean;
   error?: string;
 };
 
@@ -20,7 +22,7 @@ function parseArgs(argv: string[]): CliArgs {
     const parsedArgs = yargs(argv)
       .scriptName('msgai')
       .usage(
-        'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]',
+        'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]',
       )
       .option('dry-run', {
         type: 'boolean',
@@ -49,6 +51,11 @@ function parseArgs(argv: string[]): CliArgs {
         type: 'boolean',
         default: false,
       })
+      .option('debug', {
+        type: 'boolean',
+        default: false,
+        description: 'Print debug logs for request/response validation and batch processing',
+      })
       .strictOptions()
       .version(false)
       .exitProcess(false)
@@ -72,18 +79,20 @@ function parseArgs(argv: string[]): CliArgs {
       modelRaw != null && String(modelRaw).trim() !== '' ? String(modelRaw).trim() : undefined;
 
     if (positionalArgs.length > 1) {
-      return {
+      const result = {
         dryRun: Boolean(parsedArgs['dry-run']),
         help: Boolean(parsedArgs.help),
         apiKey: parsedArgs['api-key'],
         sourceLang,
         model,
         includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
+        debug: Boolean(parsedArgs.debug),
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
+      return result;
     }
 
-    return {
+    const result = {
       poFilePath: positionalArgs[0],
       dryRun: Boolean(parsedArgs['dry-run']),
       help: Boolean(parsedArgs.help),
@@ -91,7 +100,9 @@ function parseArgs(argv: string[]): CliArgs {
       sourceLang,
       model,
       includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
+      debug: Boolean(parsedArgs.debug),
     };
+    return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { dryRun: false, help: false, error: message };
@@ -99,22 +110,28 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]';
 
 function main(argv: string[]): number | undefined {
   const args = parseArgs(argv);
+  initDebugLogger(args.debug);
+  const debugLogger = getDebugLogger();
+  debugLogger.log('cli.main', 'Entering CLI main', { argv, args });
 
   if (args.error) {
+    debugLogger.log('cli.main', 'Exiting because args contained an error', { error: args.error });
     console.warn(args.error);
     console.warn(USAGE);
     return 1;
   }
 
   if (args.help) {
+    debugLogger.log('cli.main', 'Printing help output');
     console.log(USAGE);
     return 0;
   }
 
+  debugLogger.log('cli.main', 'Dispatching runTranslateCommand');
   const result = runTranslateCommand({
     poFilePath: args.poFilePath,
     dryRun: args.dryRun,
@@ -122,13 +139,16 @@ function main(argv: string[]): number | undefined {
     sourceLang: args.sourceLang,
     model: args.model,
     includeFuzzy: args.includeFuzzy,
+    debug: args.debug,
   });
 
   if (result instanceof Promise) {
+    debugLogger.log('cli.main', 'runTranslateCommand returned a promise');
     result.then((code) => process.exit(code));
     return undefined as unknown as number;
   }
 
+  debugLogger.log('cli.main', 'runTranslateCommand returned synchronously', { exitCode: result });
   return result;
 }
 

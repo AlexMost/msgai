@@ -79,7 +79,7 @@ msgai messages.po --api-key sk-...
 Usage:
 
 ```bash
-msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]
+msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]
 ```
 
 Options:
@@ -89,11 +89,18 @@ Options:
 - `--source-lang LANG`: set the source language of `msgid` strings as an ISO 639-1 code such as `en` or `uk`
 - `--model MODEL`: set the OpenAI model used for translation; default is `gpt-4o`. Only models with `json_schema` structured outputs are supported.
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
+- `--debug`: print debug logs for batch preparation, OpenAI request retries, request payloads, and raw response validation
 - `--help`: print command usage
+
+You can also enable the same debug logging with the environment variable `DEBUG=1`:
+
+```bash
+DEBUG=1 msgai messages.po
+```
 
 If no API key is provided for a non-dry run, the CLI exits with code `1` and prints an error message.
 
-On API failures such as rate limits, quota issues, or server errors, the CLI exits with code `1` and shows a status-specific message. For API error details, see [OpenAI API error codes](https://developers.openai.com/api/docs/guides/error-codes#api-errors).
+On API failures such as rate limits, quota issues, or server errors, the CLI exits with code `1` and shows a status-specific message. Validation errors for protected fields such as `msgid`, `msgid_plural`, or `msgctxt` now tell you whether a retry is reasonable and when to rerun with `--debug` or `DEBUG=1` to inspect the request/response flow. For API error details, see [OpenAI API error codes](https://developers.openai.com/api/docs/guides/error-codes#api-errors).
 
 ## 🧪 Development
 

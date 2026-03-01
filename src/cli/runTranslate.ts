@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { getExamples } from 'plural-forms';
+import { getDebugLogger, initDebugLogger } from '../debug';
 import {
   parsePoContent,
   getEntriesToTranslate,
@@ -69,6 +70,7 @@ export type TranslateCommandArgs = {
   sourceLang?: string;
   model?: string;
   includeFuzzy?: boolean;
+  debug?: boolean;
 };
 
 export async function runTranslate(
@@ -77,9 +79,22 @@ export async function runTranslate(
   sourceLang?: string,
   model?: string,
   includeFuzzy?: boolean,
+  debug?: boolean,
 ): Promise<number> {
+  initDebugLogger(debug);
+  const debugLogger = getDebugLogger();
   try {
+    debugLogger.log('cli.runTranslate', 'Starting translation run', {
+      poFilePath,
+      sourceLang,
+      model: model ?? 'gpt-4o',
+      includeFuzzy: includeFuzzy === true,
+    });
     const poContent = fs.readFileSync(poFilePath, 'utf8');
+    debugLogger.log('cli.runTranslate', 'Read PO file', {
+      poFilePath,
+      bytes: Buffer.byteLength(poContent, 'utf8'),
+    });
     const parsedPo = parsePoContent(poContent);
     const { entries } = getEntriesToTranslate(parsedPo, { includeFuzzy });
 
@@ -99,16 +114,34 @@ export async function runTranslate(
         // locale not in plural-forms; rely on formula only
       }
     }
-    const options = { apiKey, sourceLanguage: sourceLang, formula, pluralSamples, model };
+    const options = { apiKey, sourceLanguage: sourceLang, formula, pluralSamples, model, debug };
+
+    debugLogger.log('cli.runTranslate', 'Computed translation run inputs', {
+      targetLanguage,
+      formula,
+      pluralSamples,
+      entryCount: entries.length,
+      entries,
+    });
 
     for (let i = 0; i < entries.length; i += TRANSLATE_BATCH_SIZE) {
       const batch = entries.slice(i, i + TRANSLATE_BATCH_SIZE);
       const batchNum = Math.floor(i / TRANSLATE_BATCH_SIZE) + 1;
       const totalBatches = Math.ceil(entries.length / TRANSLATE_BATCH_SIZE);
+      debugLogger.log('cli.runTranslate', 'Preparing translation batch', {
+        batch: batchNum,
+        totalBatches,
+        batchSize: batch.length,
+        entries: batch,
+      });
       console.log(
         `Translating batch ${batchNum}/${totalBatches} (${batch.length} phrase${batch.length === 1 ? '' : 's'})...`,
       );
       const batchResults = await translateStrings(batch, targetLanguage, options);
+      debugLogger.log('cli.runTranslate', 'Received translation batch results', {
+        batch: batchNum,
+        results: batchResults,
+      });
       for (const r of batchResults) {
         if (typeof r.msgstr === 'string') {
           console.log(`  ${r.msgid} => ${r.msgstr}`);
@@ -121,10 +154,17 @@ export async function runTranslate(
         clearFuzzyFromEntries(parsedPo, batchResults);
       }
       fs.writeFileSync(poFilePath, compilePo(parsedPo));
+      debugLogger.log('cli.runTranslate', 'Wrote translated batch back to PO file', {
+        batch: batchNum,
+        poFilePath,
+      });
     }
 
     return 0;
   } catch (error) {
+    debugLogger.log('cli.runTranslate', 'Translation run failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     const apiMessage = getApiErrorMessage(error);
     if (apiMessage != null) {
       console.warn(apiMessage);
@@ -137,9 +177,12 @@ export async function runTranslate(
 }
 
 const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
+  initDebugLogger(args.debug);
+  const debugLogger = getDebugLogger();
+  debugLogger.log('cli.runTranslateCommand', 'Received command args', args);
   if (!args.poFilePath) {
     console.warn(USAGE);
     return 1;
@@ -149,6 +192,10 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
     try {
       validateSourceLang(args.sourceLang);
     } catch (error) {
+      debugLogger.log('cli.runTranslateCommand', 'Source language validation failed', {
+        sourceLang: args.sourceLang,
+        error: error instanceof Error ? error.message : String(error),
+      });
       const message = error instanceof Error ? error.message : String(error);
       console.warn(message);
       return 1;
@@ -159,6 +206,9 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
     try {
       validateModel(args.model);
     } catch {
+      debugLogger.log('cli.runTranslateCommand', 'Model validation failed', {
+        model: args.model,
+      });
       console.warn(getInvalidModelMessage(args.model));
       return 1;
     }
@@ -168,7 +218,13 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
     let resultApiKey: string;
     try {
       resultApiKey = resolveApiKey(args.apiKey);
+      debugLogger.log('cli.runTranslateCommand', 'Resolved API key for translation run', {
+        source: args.apiKey != null && args.apiKey.trim() !== '' ? 'cli-arg' : 'env',
+      });
     } catch (error) {
+      debugLogger.log('cli.runTranslateCommand', 'API key resolution failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       const message = error instanceof Error ? error.message : String(error);
       console.warn(message.replace('pass apiKey in options', 'pass --api-key'));
       return 1;
@@ -179,14 +235,23 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       args.sourceLang,
       args.model,
       args.includeFuzzy,
+      args.debug,
     );
   }
 
   try {
     const poContent = fs.readFileSync(args.poFilePath, 'utf8');
+    debugLogger.log('cli.runTranslateCommand', 'Dry-run read PO file', {
+      poFilePath: args.poFilePath,
+      bytes: Buffer.byteLength(poContent, 'utf8'),
+    });
     const parsedPo = parsePoContent(poContent);
     const { entries } = getEntriesToTranslate(parsedPo, {
       includeFuzzy: args.includeFuzzy,
+    });
+    debugLogger.log('cli.runTranslateCommand', 'Dry-run extracted entries', {
+      entryCount: entries.length,
+      entries,
     });
     const msgidsToShow = entries.map((e) => e.msgid);
 
@@ -195,6 +260,9 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
     }
     return 0;
   } catch (error) {
+    debugLogger.log('cli.runTranslateCommand', 'Dry-run failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`Failed to process PO file: ${message}`);
     return 1;

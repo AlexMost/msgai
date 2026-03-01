@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { getDebugLogger, initDebugLogger } from './debug';
 import { loadEnv } from './loadEnv';
 
 export function resolveApiKey(apiKey?: string): string {
@@ -15,6 +16,7 @@ export type TranslateOptions = {
   apiKey: string;
   client?: OpenAI;
   model?: string;
+  debug?: boolean;
 };
 
 const DEFAULT_MODEL = 'gpt-4o';
@@ -248,14 +250,39 @@ function stripJsonFences(raw: string): string {
   return match ? match[1].trim() : trimmed;
 }
 
+function normalizeMsgctxt(msgctxt: unknown): string {
+  return typeof msgctxt === 'string' ? msgctxt : '';
+}
+
+function buildProtectedFieldMismatchMessage(
+  index: number,
+  field: 'msgctxt' | 'msgid' | 'msgid_plural',
+): string {
+  const entryRef = `OpenAI response translations[${index}].${field}`;
+  const retryHint =
+    'Retry the command once because this can be a transient structured-output formatting issue.';
+  const debugHint =
+    'If it keeps happening, rerun with --debug and double-check that the PO entry content matches the returned protected fields.';
+
+  if (field === 'msgctxt') {
+    return `${entryRef} must match the input exactly. ${retryHint} If it keeps happening, rerun with --debug and check whether empty gettext context is being returned as omitted vs empty string.`;
+  }
+
+  return `${entryRef} must match the input exactly. ${retryHint} ${debugHint}`;
+}
+
 function parsePayloadResponse(
   request: TranslatePayloadRequest,
   content: string | null,
+  options?: { debug?: boolean },
 ): TranslatePayloadResponse {
+  initDebugLogger(options?.debug);
+  const debug = getDebugLogger();
   if (content == null || content.trim() === '') {
     throw new Error('Empty response from OpenAI');
   }
   const raw = content.trim();
+  debug.log('translate', 'Raw OpenAI response content received', raw);
   const toParse = stripJsonFences(raw);
   let parsed: unknown;
   try {
@@ -287,13 +314,14 @@ function parsePayloadResponse(
     const entry = t as Record<string, unknown>;
     const msgstr = entry.msgstr;
     const requestEntry = request.translations[i];
-    const requestContext = requestEntry.msgctxt;
-    if (entry.msgctxt !== requestContext) {
-      throw new Error(`OpenAI response translations[${i}].msgctxt must match the input exactly`);
+    const requestContext = normalizeMsgctxt(requestEntry.msgctxt);
+    const responseContext = normalizeMsgctxt(entry.msgctxt);
+    if (responseContext !== requestContext) {
+      throw new Error(buildProtectedFieldMismatchMessage(i, 'msgctxt'));
     }
     if ('msgid' in requestEntry) {
       if (entry.msgid !== requestEntry.msgid) {
-        throw new Error(`OpenAI response translations[${i}].msgid must match the input exactly`);
+        throw new Error(buildProtectedFieldMismatchMessage(i, 'msgid'));
       }
       if ('msgid_plural' in entry) {
         throw new Error(`OpenAI response translations[${i}] must not include msgid_plural`);
@@ -303,9 +331,7 @@ function parsePayloadResponse(
       throw new Error(`OpenAI response translations[${i}].msgstr must be a string`);
     }
     if (entry.msgid_plural !== requestEntry.msgid_plural) {
-      throw new Error(
-        `OpenAI response translations[${i}].msgid_plural must match the input exactly`,
-      );
+      throw new Error(buildProtectedFieldMismatchMessage(i, 'msgid_plural'));
     }
     if ('msgid' in entry) {
       throw new Error(`OpenAI response translations[${i}] must not include msgid`);
@@ -331,6 +357,8 @@ export async function translatePayload(
   if (payload.translations.length === 0) {
     return { ...payload, translations: [] };
   }
+  initDebugLogger(options?.debug);
+  const debug = getDebugLogger();
 
   const client =
     options?.client ??
@@ -339,27 +367,53 @@ export async function translatePayload(
     });
   const model = options?.model ?? DEFAULT_MODEL;
   validateStructuredOutputModel(model);
+  debug.log('translate', 'Prepared translatePayload request summary', {
+    model,
+    target_language: payload.target_language,
+    source_language: payload.source_language,
+    translation_count: payload.translations.length,
+    plural_samples: payload.plural_samples?.length ?? 0,
+  });
+  debug.log('translate', 'translatePayload request payload', payload);
+  const requestParams = {
+    model,
+    temperature: 0,
+    response_format: {
+      type: 'json_schema' as const,
+      json_schema: TRANSLATION_RESPONSE_SCHEMA,
+    },
+    messages: [
+      { role: 'system' as const, content: buildSystemMessage() },
+      { role: 'user' as const, content: JSON.stringify(payload) },
+    ],
+  };
+  debug.log('translate', 'OpenAI chat.completions.create request', requestParams);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await client.chat.completions.create({
-        model,
-        temperature: 0,
-        response_format: {
-          type: 'json_schema',
-          json_schema: TRANSLATION_RESPONSE_SCHEMA,
-        },
-        messages: [
-          { role: 'system', content: buildSystemMessage() },
-          { role: 'user', content: JSON.stringify(payload) },
-        ],
+      debug.log('translate', 'Sending request to OpenAI', {
+        attempt: attempt + 1,
+        max_attempts: MAX_RETRIES + 1,
+      });
+      const response = await client.chat.completions.create(requestParams);
+      debug.log('translate', 'OpenAI chat.completions.create response metadata', {
+        id: response.id,
+        model: response.model,
+        finish_reason: response.choices[0]?.finish_reason ?? null,
+        choices: response.choices.length,
       });
       const content = response.choices[0]?.message?.content ?? null;
-      return parsePayloadResponse(payload, content);
+      return parsePayloadResponse(payload, content, { debug: options?.debug });
     } catch (err) {
       const shouldRetry = attempt < MAX_RETRIES && isApiError(err) && isRetryableStatus(err.status);
+      debug.log('translate', 'translatePayload request failed', {
+        attempt: attempt + 1,
+        shouldRetry,
+        error: err instanceof Error ? err.message : String(err),
+      });
       if (shouldRetry) {
         const delayMs = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
+        debug.log('translate', 'Retrying after backoff', { delay_ms: delayMs });
         await sleep(delayMs);
         continue;
       }

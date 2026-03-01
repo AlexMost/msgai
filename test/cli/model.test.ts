@@ -63,3 +63,35 @@ msgstr ""
     tempPo.cleanup();
   }
 });
+
+test('runTranslate forwards debug flag to translateStrings', async () => {
+  translateStringsMock.mockResolvedValue([{ msgid: 'Hello', msgstr: 'Привіт' }]);
+  const tempPo = getTmpPo(`
+msgid "Hello"
+msgstr ""
+`);
+
+  try {
+    const code = await runTranslate(
+      tempPo.poFilePath,
+      'fake-key',
+      'en',
+      undefined,
+      undefined,
+      true,
+    );
+
+    expect(code).toBe(0);
+    expect(translateStringsMock).toHaveBeenCalledWith(
+      [{ msgid: 'Hello', msgctxt: '' }],
+      'uk',
+      expect.objectContaining({
+        apiKey: 'fake-key',
+        sourceLanguage: 'en',
+        debug: true,
+      }),
+    );
+  } finally {
+    tempPo.cleanup();
+  }
+});

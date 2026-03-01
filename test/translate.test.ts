@@ -127,6 +127,85 @@ test('translateStrings returns empty array for empty entries', async () => {
   expect(createMock).not.toHaveBeenCalled();
 });
 
+test('translatePayload accepts omitted msgctxt in response when request context is empty string', async () => {
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValue(
+      mockCompletion(JSON.stringify({ translations: [{ msgid: 'Hello', msgstr: 'Привіт' }] })),
+    );
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  const result = await translatePayload(
+    {
+      formula: '',
+      target_language: 'uk',
+      source_language: 'en',
+      translations: [{ msgid: 'Hello', msgctxt: '' }],
+    },
+    { apiKey: 'test-key', client: mockClient },
+  );
+
+  expect(result.translations).toEqual([{ msgid: 'Hello', msgstr: 'Привіт' }]);
+});
+
+test('translatePayload accepts empty-string msgctxt in response when request context is omitted', async () => {
+  const createMock = jest.fn<(params: unknown) => Promise<unknown>>().mockResolvedValue(
+    mockCompletion(
+      JSON.stringify({
+        translations: [{ msgid: 'Hello', msgctxt: '', msgstr: 'Привіт' }],
+      }),
+    ),
+  );
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  const result = await translatePayload(
+    {
+      formula: '',
+      target_language: 'uk',
+      source_language: 'en',
+      translations: [{ msgid: 'Hello' }],
+    },
+    { apiKey: 'test-key', client: mockClient },
+  );
+
+  expect(result.translations).toEqual([{ msgid: 'Hello', msgctxt: '', msgstr: 'Привіт' }]);
+});
+
+test('translatePayload mismatch error tells user to retry and rerun with debug', async () => {
+  const createMock = jest.fn<(params: unknown) => Promise<unknown>>().mockResolvedValue(
+    mockCompletion(
+      JSON.stringify({
+        translations: [{ msgid: 'Hello', msgctxt: 'auth', msgstr: 'Привіт' }],
+      }),
+    ),
+  );
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await expect(
+    translatePayload(
+      {
+        formula: '',
+        target_language: 'uk',
+        source_language: 'en',
+        translations: [{ msgid: 'Hello' }],
+      },
+      { apiKey: 'test-key', client: mockClient },
+    ),
+  ).rejects.toThrow(/Retry the command once/i);
+
+  await expect(
+    translatePayload(
+      {
+        formula: '',
+        target_language: 'uk',
+        source_language: 'en',
+        translations: [{ msgid: 'Hello' }],
+      },
+      { apiKey: 'test-key', client: mockClient },
+    ),
+  ).rejects.toThrow(/--debug/i);
+});
+
 test('translateStrings throws when response is not valid JSON', async () => {
   const createMock = jest
     .fn<(params: unknown) => Promise<unknown>>()
