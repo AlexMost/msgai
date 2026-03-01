@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## [1.1.1](https://github.com/AlexMost/msgai/compare/v1.1.0...v1.1.1) (2026-03-01)
 
-
 ### Bug Fixes
 
-* normalize msgctxt validation and add debug mode ([7488a78](https://github.com/AlexMost/msgai/commit/7488a782594253c4cfc46b56500ca7fa7b102766))
+- normalize msgctxt validation and add debug mode ([7488a78](https://github.com/AlexMost/msgai/commit/7488a782594253c4cfc46b56500ca7fa7b102766))
 
 ## [1.1.0](https://github.com/AlexMost/msgai/compare/v1.0.2...v1.1.0) (2026-03-01)
 
