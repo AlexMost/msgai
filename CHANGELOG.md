@@ -4,11 +4,10 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## [1.1.0](https://github.com/AlexMost/msgai/compare/v1.0.2...v1.1.0) (2026-03-01)
 
-
 ### Features
 
-* **cli:** add --model option for translation ([61a2ed8](https://github.com/AlexMost/msgai/commit/61a2ed8502a0f90bbb09a1715bbb58d0ddabe01e))
-* use structured outputs for translations ([c57e75b](https://github.com/AlexMost/msgai/commit/c57e75bda4229923dfca1daf1b8146a50f1d9b7f))
+- **cli:** add --model option for translation ([61a2ed8](https://github.com/AlexMost/msgai/commit/61a2ed8502a0f90bbb09a1715bbb58d0ddabe01e))
+- use structured outputs for translations ([c57e75b](https://github.com/AlexMost/msgai/commit/c57e75bda4229923dfca1daf1b8146a50f1d9b7f))
 
 ## 1.0.2 (2026-02-27)
 
