@@ -9,7 +9,12 @@ import {
   getLanguage,
   getPluralForms,
 } from '../po';
-import { resolveApiKey, translateStrings } from '../translate';
+import {
+  resolveApiKey,
+  translateStrings,
+  validateModel,
+  SUPPORTED_STRUCTURED_OUTPUT_MODELS,
+} from '../translate';
 import { validateSourceLang } from '../validate-source-lang';
 
 const TRANSLATE_BATCH_SIZE = 15;
@@ -50,11 +55,19 @@ function getApiErrorMessage(err: unknown): string | null {
   }
 }
 
+function getInvalidModelMessage(model: string): string {
+  return [
+    `Invalid --model "${model}". msgai only supports OpenAI models with json_schema structured outputs.`,
+    `Supported model families: ${SUPPORTED_STRUCTURED_OUTPUT_MODELS.join(', ')}.`,
+  ].join(' ');
+}
+
 export type TranslateCommandArgs = {
   poFilePath?: string;
   dryRun: boolean;
   apiKey?: string;
   sourceLang?: string;
+  model?: string;
   includeFuzzy?: boolean;
 };
 
@@ -62,6 +75,7 @@ export async function runTranslate(
   poFilePath: string,
   apiKey: string,
   sourceLang?: string,
+  model?: string,
   includeFuzzy?: boolean,
 ): Promise<number> {
   try {
@@ -85,7 +99,7 @@ export async function runTranslate(
         // locale not in plural-forms; rely on formula only
       }
     }
-    const options = { apiKey, sourceLanguage: sourceLang, formula, pluralSamples };
+    const options = { apiKey, sourceLanguage: sourceLang, formula, pluralSamples, model };
 
     for (let i = 0; i < entries.length; i += TRANSLATE_BATCH_SIZE) {
       const batch = entries.slice(i, i + TRANSLATE_BATCH_SIZE);
@@ -123,7 +137,7 @@ export async function runTranslate(
 }
 
 const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   if (!args.poFilePath) {
@@ -141,6 +155,15 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
     }
   }
 
+  if (args.model != null) {
+    try {
+      validateModel(args.model);
+    } catch (error) {
+      console.warn(getInvalidModelMessage(args.model));
+      return 1;
+    }
+  }
+
   if (!args.dryRun) {
     let resultApiKey: string;
     try {
@@ -150,7 +173,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       console.warn(message.replace('pass apiKey in options', 'pass --api-key'));
       return 1;
     }
-    return runTranslate(args.poFilePath, resultApiKey, args.sourceLang, args.includeFuzzy);
+    return runTranslate(args.poFilePath, resultApiKey, args.sourceLang, args.model, args.includeFuzzy);
   }
 
   try {

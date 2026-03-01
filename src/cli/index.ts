@@ -10,6 +10,7 @@ type CliArgs = {
   help: boolean;
   apiKey?: string;
   sourceLang?: string;
+  model?: string;
   includeFuzzy?: boolean;
   error?: string;
 };
@@ -19,7 +20,7 @@ function parseArgs(argv: string[]): CliArgs {
     const parsedArgs = yargs(argv)
       .scriptName('msgai')
       .usage(
-        'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]',
+        'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]',
       )
       .option('dry-run', {
         type: 'boolean',
@@ -38,6 +39,10 @@ function parseArgs(argv: string[]): CliArgs {
         type: 'string',
         description:
           'Source language of msgid strings (ISO 639-1 code, e.g. en, uk). If omitted, the model will detect it.',
+      })
+      .option('model', {
+        type: 'string',
+        description: 'OpenAI model to use for translation. Default: gpt-4o',
       })
       .option('help', {
         alias: 'h',
@@ -62,6 +67,9 @@ function parseArgs(argv: string[]): CliArgs {
       sourceLangRaw != null && String(sourceLangRaw).trim() !== ''
         ? String(sourceLangRaw).trim().toLowerCase()
         : undefined;
+    const modelRaw = parsedArgs.model;
+    const model =
+      modelRaw != null && String(modelRaw).trim() !== '' ? String(modelRaw).trim() : undefined;
 
     if (positionalArgs.length > 1) {
       return {
@@ -69,6 +77,7 @@ function parseArgs(argv: string[]): CliArgs {
         help: Boolean(parsedArgs.help),
         apiKey: parsedArgs['api-key'],
         sourceLang,
+        model,
         includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
@@ -80,6 +89,7 @@ function parseArgs(argv: string[]): CliArgs {
       help: Boolean(parsedArgs.help),
       apiKey: parsedArgs['api-key'],
       sourceLang,
+      model,
       includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
     };
   } catch (error) {
@@ -89,7 +99,7 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]';
 
 function main(argv: string[]): number | undefined {
   const args = parseArgs(argv);
@@ -110,6 +120,7 @@ function main(argv: string[]): number | undefined {
     dryRun: args.dryRun,
     apiKey: args.apiKey,
     sourceLang: args.sourceLang,
+    model: args.model,
     includeFuzzy: args.includeFuzzy,
   });
 

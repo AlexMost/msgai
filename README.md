@@ -24,7 +24,30 @@ Main features:
 3. Send those strings to OpenAI `gpt-4o` for translation while preserving gettext context such as `msgctxt`.
 4. Write the translated values back into the same `.po` file.
 
-The translation API uses OpenAI `json_schema` structured outputs. Supported model families include `gpt-4o`, `gpt-4o-mini`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5-pro`, `gpt-5.1`, `gpt-5.2`, and supported Codex variants. Dated snapshots are accepted where the model family supports them.
+The translation API uses OpenAI `json_schema` structured outputs. Only models that support `json_schema` structured outputs are valid for `msgai`.
+
+<details>
+<summary>Supported model families</summary>
+
+- `gpt-4o`
+- `gpt-4o-mini`
+- `gpt-4.1`
+- `gpt-4.1-mini`
+- `gpt-4.1-nano`
+- `gpt-5`
+- `gpt-5-mini`
+- `gpt-5-nano`
+- `gpt-5-pro`
+- `gpt-5.1`
+- `gpt-5.2`
+- `gpt-5-codex`
+- `gpt-5.1-codex`
+- `gpt-5.1-codex-mini`
+- `gpt-5.1-codex-max`
+- `gpt-5.2-codex`
+
+Dated snapshots are accepted where the model family supports them.
+</details>
 
 By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
 
@@ -55,16 +78,15 @@ msgai messages.po --api-key sk-...
 Usage:
 
 ```bash
-msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--include-fuzzy]
+msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy]
 ```
-
-Note: the CLI currently uses `gpt-4o` as a hardcoded default model. Selecting a different model via CLI arguments is not supported yet.
 
 Options:
 
 - `--dry-run`: list untranslated `msgid` values only, with no API calls and no file changes
 - `--include-fuzzy`: include fuzzy entries for translation and clear their fuzzy flag after translation
 - `--source-lang LANG`: set the source language of `msgid` strings as an ISO 639-1 code such as `en` or `uk`
+- `--model MODEL`: set the OpenAI model used for translation; default is `gpt-4o`. Only models with `json_schema` structured outputs are supported.
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
 - `--help`: print command usage
 

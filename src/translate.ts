@@ -36,7 +36,7 @@ const SUPPORTED_STRUCTURED_OUTPUT_MODEL_PATTERNS = [
   /^gpt-5\.1-codex-max$/,
   /^gpt-5\.2-codex$/,
 ] as const;
-const SUPPORTED_STRUCTURED_OUTPUT_MODELS_DESCRIPTION = [
+export const SUPPORTED_STRUCTURED_OUTPUT_MODELS = [
   'gpt-4o',
   'gpt-4o-mini',
   'gpt-4.1',
@@ -84,8 +84,12 @@ function isSupportedStructuredOutputModel(model: string): boolean {
 function validateStructuredOutputModel(model: string): void {
   if (isSupportedStructuredOutputModel(model)) return;
   throw new Error(
-    `Model "${model}" is not supported. This package requires an OpenAI Chat Completions model with json_schema structured outputs. Supported model families: ${SUPPORTED_STRUCTURED_OUTPUT_MODELS_DESCRIPTION.join(', ')}.`,
+    `Model "${model}" is not supported. This package requires an OpenAI Chat Completions model with json_schema structured outputs. Supported model families: ${SUPPORTED_STRUCTURED_OUTPUT_MODELS.join(', ')}.`,
   );
+}
+
+export function validateModel(model: string): void {
+  validateStructuredOutputModel(model);
 }
 
 /** Request entry: either singular (msgid) or plural (msgid_plural). Optional msgctxt for gettext context. */
