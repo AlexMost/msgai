@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.2.0](https://github.com/AlexMost/msgai/compare/v1.1.1...v1.2.0) (2026-03-02)
+
+### Features
+
+- add configurable po fold length ([343775c](https://github.com/AlexMost/msgai/commit/343775c8046abf6705ca02d687305d1db1e2c9c6))
+
 ## [1.1.1](https://github.com/AlexMost/msgai/compare/v1.1.0...v1.1.1) (2026-03-01)
 
 ### Bug Fixes
