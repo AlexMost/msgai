@@ -70,6 +70,7 @@ export type TranslateCommandArgs = {
   sourceLang?: string;
   model?: string;
   includeFuzzy?: boolean;
+  foldLength?: number;
   debug?: boolean;
 };
 
@@ -79,6 +80,7 @@ export async function runTranslate(
   sourceLang?: string,
   model?: string,
   includeFuzzy?: boolean,
+  foldLength?: number,
   debug?: boolean,
 ): Promise<number> {
   initDebugLogger(debug);
@@ -153,7 +155,7 @@ export async function runTranslate(
       if (includeFuzzy) {
         clearFuzzyFromEntries(parsedPo, batchResults);
       }
-      fs.writeFileSync(poFilePath, compilePo(parsedPo));
+      fs.writeFileSync(poFilePath, compilePo(parsedPo, { foldLength }));
       debugLogger.log('cli.runTranslate', 'Wrote translated batch back to PO file', {
         batch: batchNum,
         poFilePath,
@@ -177,7 +179,7 @@ export async function runTranslate(
 }
 
 const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--debug]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   initDebugLogger(args.debug);
@@ -235,6 +237,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       args.sourceLang,
       args.model,
       args.includeFuzzy,
+      args.foldLength,
       args.debug,
     );
   }

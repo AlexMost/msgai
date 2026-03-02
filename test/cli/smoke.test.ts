@@ -11,6 +11,6 @@ test('CLI prints help output for --help', () => {
   expect(runResult.stderr).toBe('');
   expect(runResult.status).toBe(0);
   expect(runResult.stdout).toContain(
-    'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]',
+    'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--debug]',
   );
 });

@@ -13,16 +13,33 @@ type CliArgs = {
   sourceLang?: string;
   model?: string;
   includeFuzzy?: boolean;
+  foldLength?: number;
   debug?: boolean;
   error?: string;
 };
+
+function normalizeFoldLength(value: unknown): number | undefined {
+  if (value == null) {
+    return undefined;
+  }
+
+  if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value)) {
+    throw new Error('Invalid --fold-length. Expected a non-negative integer.');
+  }
+
+  if (value < 0) {
+    throw new Error('Invalid --fold-length. Expected a non-negative integer.');
+  }
+
+  return value;
+}
 
 function parseArgs(argv: string[]): CliArgs {
   try {
     const parsedArgs = yargs(argv)
       .scriptName('msgai')
       .usage(
-        'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]',
+        'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--debug]',
       )
       .option('dry-run', {
         type: 'boolean',
@@ -45,6 +62,10 @@ function parseArgs(argv: string[]): CliArgs {
       .option('model', {
         type: 'string',
         description: 'OpenAI model to use for translation. Default: gpt-4o',
+      })
+      .option('fold-length', {
+        type: 'number',
+        description: 'PO line fold length when writing files. Use 0 to disable folding. Default: 0',
       })
       .option('help', {
         alias: 'h',
@@ -77,6 +98,7 @@ function parseArgs(argv: string[]): CliArgs {
     const modelRaw = parsedArgs.model;
     const model =
       modelRaw != null && String(modelRaw).trim() !== '' ? String(modelRaw).trim() : undefined;
+    const foldLength = normalizeFoldLength(parsedArgs['fold-length']);
 
     if (positionalArgs.length > 1) {
       const result = {
@@ -86,6 +108,7 @@ function parseArgs(argv: string[]): CliArgs {
         sourceLang,
         model,
         includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
+        foldLength,
         debug: Boolean(parsedArgs.debug),
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
@@ -100,6 +123,7 @@ function parseArgs(argv: string[]): CliArgs {
       sourceLang,
       model,
       includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
+      foldLength,
       debug: Boolean(parsedArgs.debug),
     };
     return result;
@@ -110,7 +134,7 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--debug]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--debug]';
 
 function main(argv: string[]): number | undefined {
   const args = parseArgs(argv);
@@ -139,6 +163,7 @@ function main(argv: string[]): number | undefined {
     sourceLang: args.sourceLang,
     model: args.model,
     includeFuzzy: args.includeFuzzy,
+    foldLength: args.foldLength,
     debug: args.debug,
   });
 

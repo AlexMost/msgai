@@ -2,6 +2,9 @@ import { po, type GetTextTranslations, type GetTextTranslationRecord } from 'get
 import type { PoEntryInput, PoEntryOutput } from './translate';
 
 export type PoEntryKey = { context: string; msgid: string };
+export type CompilePoOptions = { foldLength?: number };
+
+const DEFAULT_FOLD_LENGTH = 0;
 
 export function getUntranslatedMsgids(parsedPo: GetTextTranslations): string[] {
   const untranslatedMsgids: string[] = [];
@@ -168,6 +171,9 @@ export function clearFuzzyFromEntries(
 /**
  * Compiles the parsed PO to a buffer (no file I/O).
  */
-export function compilePo(parsedPo: GetTextTranslations): Buffer {
-  return po.compile(parsedPo);
+export function compilePo(parsedPo: GetTextTranslations, options?: CompilePoOptions): Buffer {
+  return po.compile(parsedPo, {
+    foldLength: options?.foldLength ?? DEFAULT_FOLD_LENGTH,
+    sort: false,
+  });
 }

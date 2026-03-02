@@ -192,6 +192,40 @@ msgstr "Привіт"
   tempPo.cleanup();
 });
 
+test('compilePo does not fold long strings by default', () => {
+  const tempPo = getTmpPo(`
+msgid "A long string that would previously be folded into continuation lines by gettext-parser when the default fold length was used."
+msgstr ""
+`);
+  const parsed = parsePoContent(tempPo.poContent);
+
+  const compiled = compilePo(parsed).toString('utf8');
+
+  expect(compiled).toContain(
+    'msgid "A long string that would previously be folded into continuation lines by gettext-parser when the default fold length was used."',
+  );
+  expect(compiled).not.toContain(
+    'msgid ""\n"A long string that would previously be folded into continuation lines by gettext-parser when the default fold length was used."',
+  );
+  tempPo.cleanup();
+});
+
+test('compilePo supports explicit fold length override', () => {
+  const tempPo = getTmpPo(`
+msgid "A long string that should be wrapped when compilePo receives an explicit fold length override for compatibility."
+msgstr ""
+`);
+  const parsed = parsePoContent(tempPo.poContent);
+
+  const compiled = compilePo(parsed, { foldLength: 76 }).toString('utf8');
+
+  expect(compiled).toContain('msgid ""');
+  expect(compiled).toContain(
+    '"A long string that should be wrapped when compilePo receives an explicit "',
+  );
+  tempPo.cleanup();
+});
+
 test('same msgid with different contexts: only untranslated entry is updated by applyTranslations', () => {
   const parsed = po.parse(
     Buffer.from(
