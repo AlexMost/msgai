@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.3.0](https://github.com/AlexMost/msgai/compare/v1.2.0...v1.3.0) (2026-03-15)
+
+### Features
+
+- add --context CLI option for custom translation instructions ([276dcc8](https://github.com/AlexMost/msgai/commit/276dcc831756c42221e3237e4b485cadb30336a3))
+
 ## [1.2.0](https://github.com/AlexMost/msgai/compare/v1.1.1...v1.2.0) (2026-03-02)
 
 ### Features
