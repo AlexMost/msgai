@@ -1,81 +1,52 @@
-# AGENT.md
+# CLAUDE.md
 
-This file defines working instructions for AI coding agents in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Context
+## Project
 
-- Project: `msgai`
-- Type: Node.js CLI (TypeScript, CommonJS build output)
-- Main goal: automatically translate all untranslated strings in gettext (`.po`) files using AI (LLM); the tool finds empty `msgstr` entries, sends them to an LLM (OpenAI), and writes translations back to the file.
-- Entry point: `src/cli/index.ts` (compiled to `dist/src/cli/index.js`)
-- PO parsing logic: `src/po.ts`
-- Tests: Jest (`test/**/*.test.ts`). CLI tests live under `test/cli/` (e.g. `test/cli/*.test.ts`).
+**msgai** — a Node.js CLI tool (TypeScript, CommonJS output) that translates untranslated strings in gettext `.po` files using OpenAI models. It finds empty `msgstr` entries, sends them to an LLM, and writes translations back.
 
-## Environment and Commands
+## Commands
 
-- Requirements: Node.js 20+, npm 10+
-- Install deps: `npm install`
-- Build: `npm run build`
-- Test: `npm test`
-- Integration Test: `npm run test:integration` (Always ask wether to run this test because it uses $ for tokens and checks the whole flow)
-- Format: `npm run format`
-- Lint: `npm run lint` (ESLint, TypeScript recommended)
-- Check formatting: `npm run lint:format`
+```bash
+npm install          # Install dependencies (Node.js 20+, npm 10+)
+npm run build        # TypeScript → dist/
+npm test             # Build + run unit tests (Jest)
+npm run test:integration  # Real API tests (requires OPENAI_API_KEY, costs money — ask before running)
+npm run format       # Prettier auto-fix
+npm run lint         # ESLint check
+npm run lint:format  # Prettier check (no writes)
+```
+
+Run a single test file: `npx jest test/po.test.ts`
+
+Before committing: `npm run format && npm run lint && npm test`
 
 ## Architecture
 
-- **Side effects in the CLI folder**: Side effects (reading environment variables, reading or writing files, network calls triggered by the CLI) are welcome inside the `cli` folder (e.g. `cli/index.ts`, `cli/runTranslate.ts`). The rest of the codebase (`po.ts`, `translate.ts`, etc.) should stay pure: accept inputs as arguments and return results, without reading `process.env` or performing file I/O themselves. This keeps core logic testable and predictable.
-- **`cli/index.ts`** is responsible for argument parsing and calling the appropriate command. It should not contain business logic or validation beyond parsing and help/error handling.
-- **Argument validation** is done inside the appropriate command in the `cli` folder (e.g. the translate command in `cli/runTranslate.ts` validates `poFilePath`, `sourceLang`, `apiKey`), not in `index.ts`.
+- **`src/cli/`** — The only place side effects (file I/O, env vars, network) are allowed. `index.ts` handles argument parsing via yargs; `runTranslate.ts` coordinates the translate command and validates arguments.
+- **`src/po.ts`** — Pure functions for PO file parsing/compilation (`parsePoContent`, `getEntriesToTranslate`, `applyTranslations`, `compilePo`). Uses `gettext-parser`.
+- **`src/translate.ts`** — OpenAI API integration: batching, retries (exponential backoff on 429/500/503), structured JSON output schema. Pure except for the API call itself.
+- **`src/validate-source-lang.ts`** — ISO 639-1 language code validation.
+- **`src/loadEnv.ts`** / **`src/debug.ts`** — Dotenv loading and debug logging.
+
+Core modules outside `cli/` must remain pure: accept inputs as arguments, return results, no `process.env` reads or file I/O.
+
+- **`cli/index.ts`** is strictly for argument parsing and help/error handling — no business logic or validation.
+- **Argument validation** belongs in command files (e.g. `runTranslate.ts` validates `poFilePath`, `sourceLang`, `apiKey`), not in `index.ts`.
+- **Preserve CLI UX**: usage line format (`Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]`), exit code 0 on success, non-zero on errors.
+
+## Testing
+
+- **Unit tests** (`test/`): Must not call real APIs. Mock `translate` or the OpenAI client.
+- **Integration tests** (`test-integration/`): Hit real OpenAI API, require `OPENAI_API_KEY`.
+- Every exported function needs at least one unit test.
+- CLI behavior tests go in `test/cli/` following the pattern in `dry-run.test.ts` (spawn process, assert stdout/stderr/exit code).
 
 ## Code Conventions
 
+- Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`, `test:` etc. Use `BREAKING CHANGE:` or `!` for majors.
 - Keep changes focused and minimal; avoid broad refactors unless requested.
 - Prefer explicit, readable TypeScript over clever one-liners.
-- Preserve current CLI UX:
-  - Usage line: `Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG]`
-  - Exit code `0` on success, non-zero on error paths.
 - Avoid introducing new dependencies unless necessary.
-
-## Commit conventions
-
-- Commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) spec.
-- Use `feat:` for new features (minor version), `fix:` for bug fixes (patch), optional scope in parentheses (e.g. `feat(cli): add option`).
-- Use `BREAKING CHANGE:` in the footer or `!` after type/scope (e.g. `feat!: change default`) for major changes.
-- Other types (e.g. `docs:`, `chore:`, `test:`) are allowed but do not affect the version bump; see the spec for the full format.
-- When suggesting or describing commits, use conventional commit messages.
-
-## Testing Expectations
-
-- **Unit tests** (`test/`): Must not trigger the real API. Use mocks (e.g. mock `translate` or the OpenAI client) so `npm test` runs without network or API keys.
-- **Integration tests** (`test-integration/`): Must trigger the real API (no mocks). They run the full flow and may require `OPENAI_API_KEY`; see `npm run test:integration`.
-- **Every exported function** must have at least one unit test (in `test/`). When adding or changing exports, add or update the corresponding tests.
-- For functional changes, update or add tests in `test/`.
-- At minimum, run `npm run format`, `npm run lint`, and `npm test` before committing changes.
-- Run `npm run lint:format` when you need a non-mutating formatting check.
-- For CLI behavior updates, prefer integration-style tests similar to `test/cli/dry-run.test.ts`.
-
-## Agent Workflow
-
-1. Read relevant files before editing.
-2. Implement the smallest change that solves the task.
-3. Before committing, run `npm run format`, then `npm run lint`, then `npm run test`.
-4. Run any additional checks relevant to the change.
-5. If tests cannot be run, clearly state what was not verified and why.
-6. Summarize changed files and user-visible behavior in the final response.
-
-## Safety and Scope
-
-- Do not modify unrelated files.
-- Do not commit or push unless explicitly requested.
-- Before committing, run `npm run format`, `npm run lint`, and `npm run test`.
-- Do not change project-wide tooling/config unless required by the task.
-- Flag ambiguous requirements before making irreversible changes.
-
-## Quick Task Checklist
-
-- [ ] Does the change match the requested behavior?
-- [ ] Are edge cases covered (especially empty/malformed `.po` content and CLI args)?
-- [ ] Were tests updated/added when behavior changed?
-- [ ] Did `npm run format`, `npm run lint`, and `npm run test` pass before commit?
-- [ ] Is the final explanation concise and actionable?
+- Formatting: Prettier (semicolons, single quotes, trailing commas, 100-char width).
