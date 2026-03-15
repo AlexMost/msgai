@@ -72,6 +72,7 @@ export type TranslateCommandArgs = {
   includeFuzzy?: boolean;
   foldLength?: number;
   debug?: boolean;
+  context?: string;
 };
 
 export async function runTranslate(
@@ -82,6 +83,7 @@ export async function runTranslate(
   includeFuzzy?: boolean,
   foldLength?: number,
   debug?: boolean,
+  context?: string,
 ): Promise<number> {
   initDebugLogger(debug);
   const debugLogger = getDebugLogger();
@@ -116,7 +118,15 @@ export async function runTranslate(
         // locale not in plural-forms; rely on formula only
       }
     }
-    const options = { apiKey, sourceLanguage: sourceLang, formula, pluralSamples, model, debug };
+    const options = {
+      apiKey,
+      sourceLanguage: sourceLang,
+      formula,
+      pluralSamples,
+      model,
+      debug,
+      context,
+    };
 
     debugLogger.log('cli.runTranslate', 'Computed translation run inputs', {
       targetLanguage,
@@ -178,8 +188,8 @@ export async function runTranslate(
   }
 }
 
-const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--debug]';
+export const USAGE =
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--debug]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   initDebugLogger(args.debug);
@@ -239,6 +249,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       args.includeFuzzy,
       args.foldLength,
       args.debug,
+      args.context,
     );
   }
 

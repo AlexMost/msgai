@@ -1,6 +1,11 @@
 import { test, expect, jest } from '@jest/globals';
 import type OpenAI from 'openai';
-import { translateStrings, translateItems, translatePayload } from '../src/translate';
+import {
+  translateStrings,
+  translateItems,
+  translatePayload,
+  buildSystemMessage,
+} from '../src/translate';
 
 const mockCompletion = (content: string) => ({
   id: 'test',
@@ -542,4 +547,53 @@ test('translatePayload throws when plural msgstr length does not match plural_sa
   await expect(
     translatePayload(payload, { apiKey: 'test-key', client: mockClient }),
   ).rejects.toThrow(/length 3/i);
+});
+
+test('buildSystemMessage without context returns base prompt', () => {
+  const message = buildSystemMessage();
+  expect(message).toContain('deterministic translation engine');
+  expect(message).not.toContain('Project-specific instructions');
+});
+
+test('buildSystemMessage with context appends project-specific section', () => {
+  const message = buildSystemMessage('use formal tone');
+  expect(message).toContain('deterministic translation engine');
+  expect(message).toContain('Project-specific instructions');
+  expect(message).toContain('use formal tone');
+});
+
+test('buildSystemMessage ignores empty/whitespace context', () => {
+  expect(buildSystemMessage('')).not.toContain('Project-specific instructions');
+  expect(buildSystemMessage('   ')).not.toContain('Project-specific instructions');
+  expect(buildSystemMessage(undefined)).not.toContain('Project-specific instructions');
+});
+
+test('translatePayload passes context to system message', async () => {
+  const payload = {
+    formula: '',
+    target_language: 'uk',
+    source_language: 'en',
+    translations: [{ msgid: 'Hello' }],
+  };
+  const responsePayload = {
+    translations: [{ msgid: 'Hello', msgstr: 'Привіт' }],
+  };
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValue(mockCompletion(JSON.stringify(responsePayload)));
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  await translatePayload(payload, {
+    apiKey: 'test-key',
+    client: mockClient,
+    context: 'use formal tone',
+  });
+
+  type CreateParams = {
+    messages: Array<{ role: string; content?: string }>;
+  };
+  const params = createMock.mock.calls[0]?.[0] as CreateParams;
+  const systemContent = params.messages.find((m) => m.role === 'system')?.content ?? '';
+  expect(systemContent).toContain('Project-specific instructions');
+  expect(systemContent).toContain('use formal tone');
 });

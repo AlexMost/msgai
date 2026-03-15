@@ -17,6 +17,7 @@ export type TranslateOptions = {
   client?: OpenAI;
   model?: string;
   debug?: boolean;
+  context?: string;
 };
 
 const DEFAULT_MODEL = 'gpt-4o';
@@ -182,8 +183,8 @@ const TRANSLATION_RESPONSE_SCHEMA = {
   },
 } as const;
 
-function buildSystemMessage(): string {
-  return `You are a deterministic translation engine for gettext PO entries.
+export function buildSystemMessage(context?: string): string {
+  let message = `You are a deterministic translation engine for gettext PO entries.
 
 Return exactly one JSON object that matches the provided response schema.
 
@@ -240,6 +241,12 @@ Additional constraints:
 
 - Preserve the exact input order of entries.
 - Do not add, remove, or rename fields.`;
+
+  if (context != null && context.trim() !== '') {
+    message += `\n\nProject-specific instructions (follow these while respecting all rules above):\n\n${context}`;
+  }
+
+  return message;
 }
 
 /** Strip markdown code fences if the model wrapped JSON in ```json ... ``` */
@@ -383,7 +390,7 @@ export async function translatePayload(
       json_schema: TRANSLATION_RESPONSE_SCHEMA,
     },
     messages: [
-      { role: 'system' as const, content: buildSystemMessage() },
+      { role: 'system' as const, content: buildSystemMessage(options.context) },
       { role: 'user' as const, content: JSON.stringify(payload) },
     ],
   };

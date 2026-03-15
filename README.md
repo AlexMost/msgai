@@ -79,7 +79,7 @@ msgai messages.po --api-key sk-...
 Usage:
 
 ```bash
-msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--debug]
+msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--debug]
 ```
 
 Options:
@@ -90,6 +90,7 @@ Options:
 - `--model MODEL`: set the OpenAI model used for translation; default is `gpt-4o`. Only models with `json_schema` structured outputs are supported.
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
 - `--fold-length N`: set PO line fold length when writing files. Use `0` to disable folding and minimize formatting-only diffs. Default: `0`
+- `--context TEXT`: additional instructions for the translation model in English, appended to the system prompt (e.g. "use formal tone", "don't translate currency names")
 - `--debug`: print debug logs for batch preparation, OpenAI request retries, request payloads, and raw response validation
 - `--help`: print command usage
 
