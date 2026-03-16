@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.4.0](https://github.com/AlexMost/msgai/compare/v1.3.0...v1.4.0) (2026-03-16)
+
+### Features
+
+- add msgai.config.yml config file support ([b7618c6](https://github.com/AlexMost/msgai/commit/b7618c698c3f9f8f87371013115cd34111eb5b39))
+
 ## [1.3.0](https://github.com/AlexMost/msgai/compare/v1.2.0...v1.3.0) (2026-03-15)
 
 ### Features
