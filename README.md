@@ -79,7 +79,7 @@ msgai messages.po --api-key sk-...
 Usage:
 
 ```bash
-msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--debug]
+msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]
 ```
 
 Options:
@@ -91,6 +91,7 @@ Options:
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
 - `--fold-length N`: set PO line fold length when writing files. Use `0` to disable folding and minimize formatting-only diffs. Default: `0`
 - `--context TEXT`: additional instructions for the translation model in English, appended to the system prompt (e.g. "use formal tone", "don't translate currency names")
+- `--config PATH`: path to a YAML config file (default: `msgai.config.yml` in current directory)
 - `--debug`: print debug logs for batch preparation, OpenAI request retries, request payloads, and raw response validation
 - `--help`: print command usage
 
@@ -99,6 +100,27 @@ You can also enable the same debug logging with the environment variable `DEBUG=
 ```bash
 DEBUG=1 msgai messages.po
 ```
+
+## Configuration File
+
+`msgai` supports an optional `msgai.config.yml` config file in the project directory. If found, its values are used as defaults. CLI arguments always override config file values.
+
+Use `--config PATH` to specify a custom config file location. If `--config` is not provided, `msgai` looks for `msgai.config.yml` in the current working directory.
+
+Example `msgai.config.yml`:
+
+```yaml
+source-lang: en
+model: gpt-4o
+include-fuzzy: false
+fold-length: 80
+context: "use formal tone"
+debug: false
+```
+
+Both kebab-case and camelCase keys are accepted.
+
+`api-key` and `dry-run` are not allowed in the config file. API keys should be set via `--api-key` flag or `OPENAI_API_KEY` environment variable for security reasons. `dry-run` is a runtime-only option that must be passed as a CLI flag.
 
 If no API key is provided for a non-dry run, the CLI exits with code `1` and prints an error message.
 

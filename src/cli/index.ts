@@ -3,21 +3,9 @@
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import { getDebugLogger, initDebugLogger } from '../debug';
+import { CliArgs, mergeConfigWithArgs } from '../config';
+import { loadConfigFile } from './loadConfig';
 import { runTranslateCommand, USAGE } from './runTranslate';
-
-type CliArgs = {
-  poFilePath?: string;
-  dryRun: boolean;
-  help: boolean;
-  apiKey?: string;
-  sourceLang?: string;
-  model?: string;
-  includeFuzzy?: boolean;
-  foldLength?: number;
-  context?: string;
-  debug?: boolean;
-  error?: string;
-};
 
 function normalizeFoldLength(value: unknown): number | undefined {
   if (value == null) {
@@ -46,7 +34,6 @@ function parseArgs(argv: string[]): CliArgs {
       })
       .option('include-fuzzy', {
         type: 'boolean',
-        default: false,
         description: 'Include fuzzy entries for translation (re-translate and clear fuzzy flag)',
       })
       .option('api-key', {
@@ -78,8 +65,11 @@ function parseArgs(argv: string[]): CliArgs {
       })
       .option('debug', {
         type: 'boolean',
-        default: false,
         description: 'Print debug logs for request/response validation and batch processing',
+      })
+      .option('config', {
+        type: 'string',
+        description: 'Path to config file (default: msgai.config.yml in current directory)',
       })
       .strictOptions()
       .version(false)
@@ -109,33 +99,39 @@ function parseArgs(argv: string[]): CliArgs {
         ? String(contextRaw).trim()
         : undefined;
 
+    const configRaw = parsedArgs.config;
+    const config =
+      configRaw != null && String(configRaw).trim() !== '' ? String(configRaw).trim() : undefined;
+
     if (positionalArgs.length > 1) {
-      const result = {
+      const result: CliArgs = {
         dryRun: Boolean(parsedArgs['dry-run']),
         help: Boolean(parsedArgs.help),
         apiKey: parsedArgs['api-key'],
         sourceLang,
         model,
-        includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
+        includeFuzzy: parsedArgs['include-fuzzy'],
         foldLength,
         context,
-        debug: Boolean(parsedArgs.debug),
+        debug: parsedArgs.debug,
+        config,
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
       return result;
     }
 
-    const result = {
+    const result: CliArgs = {
       poFilePath: positionalArgs[0],
       dryRun: Boolean(parsedArgs['dry-run']),
       help: Boolean(parsedArgs.help),
       apiKey: parsedArgs['api-key'],
       sourceLang,
       model,
-      includeFuzzy: Boolean(parsedArgs['include-fuzzy']),
+      includeFuzzy: parsedArgs['include-fuzzy'],
       foldLength,
       context,
-      debug: Boolean(parsedArgs.debug),
+      debug: parsedArgs.debug,
+      config,
     };
     return result;
   } catch (error) {
@@ -145,35 +141,53 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 function main(argv: string[]): number | undefined {
-  const args = parseArgs(argv);
-  initDebugLogger(args.debug);
+  const rawArgs = parseArgs(argv);
+  initDebugLogger(rawArgs.debug);
   const debugLogger = getDebugLogger();
-  debugLogger.log('cli.main', 'Entering CLI main', { argv, args });
+  debugLogger.log('cli.main', 'Entering CLI main', { argv, args: rawArgs });
 
-  if (args.error) {
-    debugLogger.log('cli.main', 'Exiting because args contained an error', { error: args.error });
-    console.warn(args.error);
+  if (rawArgs.error) {
+    debugLogger.log('cli.main', 'Exiting because args contained an error', {
+      error: rawArgs.error,
+    });
+    console.warn(rawArgs.error);
     console.warn(USAGE);
     return 1;
   }
 
-  if (args.help) {
+  if (rawArgs.help) {
     debugLogger.log('cli.main', 'Printing help output');
     console.log(USAGE);
     return 0;
   }
 
+  let args: Partial<CliArgs>;
+  try {
+    const config = loadConfigFile(rawArgs.config);
+    debugLogger.log('cli.main', 'Loaded config file', { config });
+    args = config ? mergeConfigWithArgs(config, rawArgs) : rawArgs;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Config file error: ${message}`);
+    return 1;
+  }
+
+  // Default remaining undefined booleans after config merge
+  const dryRun = args.dryRun ?? false;
+  const includeFuzzy = args.includeFuzzy ?? false;
+  const debug = args.debug ?? false;
+
   debugLogger.log('cli.main', 'Dispatching runTranslateCommand');
   const result = runTranslateCommand({
     poFilePath: args.poFilePath,
-    dryRun: args.dryRun,
+    dryRun,
     apiKey: args.apiKey,
     sourceLang: args.sourceLang,
     model: args.model,
-    includeFuzzy: args.includeFuzzy,
+    includeFuzzy,
     foldLength: args.foldLength,
     context: args.context,
-    debug: args.debug,
+    debug,
   });
 
   if (result instanceof Promise) {

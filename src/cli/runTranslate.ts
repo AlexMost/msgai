@@ -189,7 +189,7 @@ export async function runTranslate(
 }
 
 export const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--debug]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   initDebugLogger(args.debug);
