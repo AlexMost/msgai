@@ -249,65 +249,6 @@ test('translatePayload throws when response missing translations', async () => {
   ).rejects.toThrow(/translations/i);
 });
 
-test('translatePayload rejects unsupported models before calling OpenAI', async () => {
-  const createMock = jest.fn<(params: unknown) => Promise<unknown>>();
-  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
-
-  await expect(
-    translatePayload(
-      {
-        formula: '',
-        target_language: 'uk',
-        source_language: 'en',
-        translations: [{ msgid: 'Hi' }],
-      },
-      { apiKey: 'test-key', client: mockClient, model: 'gpt-4-turbo' },
-    ),
-  ).rejects.toThrow(/json_schema structured outputs|supported models/i);
-
-  expect(createMock).not.toHaveBeenCalled();
-});
-
-test('translatePayload allows supported GPT-5 structured-output models', async () => {
-  const createMock = jest
-    .fn<(params: unknown) => Promise<unknown>>()
-    .mockResolvedValue(
-      mockCompletion(JSON.stringify({ translations: [{ msgid: 'Hi', msgstr: 'Привіт' }] })),
-    );
-  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
-
-  const result = await translatePayload(
-    {
-      formula: '',
-      target_language: 'uk',
-      source_language: 'en',
-      translations: [{ msgid: 'Hi' }],
-    },
-    { apiKey: 'test-key', client: mockClient, model: 'gpt-5.2' },
-  );
-
-  expect(result.translations[0]?.msgstr).toBe('Привіт');
-  expect(createMock).toHaveBeenCalledTimes(1);
-});
-
-test('translatePayload rejects GPT-5.2 models without structured outputs support', async () => {
-  const createMock = jest.fn<(params: unknown) => Promise<unknown>>();
-  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
-
-  await expect(
-    translatePayload(
-      {
-        formula: '',
-        target_language: 'uk',
-        source_language: 'en',
-        translations: [{ msgid: 'Hi' }],
-      },
-      { apiKey: 'test-key', client: mockClient, model: 'gpt-5.2-pro' },
-    ),
-  ).rejects.toThrow(/not supported/i);
-
-  expect(createMock).not.toHaveBeenCalled();
-});
 
 test('translateItems sends items and returns translated strings in same order', async () => {
   const responsePayload = {

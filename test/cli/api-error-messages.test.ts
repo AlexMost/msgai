@@ -156,6 +156,48 @@ msgstr ""
   }
 });
 
+test('runTranslate shows structured output hint when 400 mentions json_schema', async () => {
+  mockState.errorToThrow = apiError(
+    400,
+    undefined,
+    "response_format of type 'json_schema' is not supported with this model",
+  );
+  const tempPo = getTmpPo(`
+msgid "Hello"
+msgstr ""
+`);
+
+  try {
+    const code = await runTranslate(tempPo.poFilePath, 'fake-key');
+    expect(code).toBe(1);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('may not support json_schema structured outputs'),
+    );
+    expect(consoleWarnSpy.mock.calls[0][0]).toContain('gpt-5.4');
+  } finally {
+    tempPo.cleanup();
+  }
+});
+
+test('runTranslate shows generic 400 message for unrelated bad request', async () => {
+  mockState.errorToThrow = apiError(400, undefined, 'Invalid value for temperature');
+  const tempPo = getTmpPo(`
+msgid "Hello"
+msgstr ""
+`);
+
+  try {
+    const code = await runTranslate(tempPo.poFilePath, 'fake-key');
+    expect(code).toBe(1);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Invalid request'),
+    );
+    expect(consoleWarnSpy.mock.calls[0][0]).toContain('Invalid value for temperature');
+  } finally {
+    tempPo.cleanup();
+  }
+});
+
 test('runTranslate shows generic message for non-API error', async () => {
   mockState.errorToThrow = new Error('Network connection failed');
   const tempPo = getTmpPo(`

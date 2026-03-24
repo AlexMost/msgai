@@ -10,7 +10,7 @@ Main features:
 
 - `📝` Works directly with gettext `.po` files
 - `🤖` Translates only untranslated entries using AI
-- `🧠` Uses OpenAI `gpt-4o` by default for translation
+- `🧠` Uses OpenAI `gpt-5.4` by default for translation
 - `🏷️` Respects gettext context (`msgctxt`) when translating entries
 - `🔁` Supports singular and plural translations
 - `⚠️` Skips fuzzy entries by default
@@ -21,34 +21,12 @@ Main features:
 
 1. Read the `.po` file and parse its entries.
 2. Find entries with empty or missing translations.
-3. Send those strings to OpenAI `gpt-4o` for translation while preserving gettext context such as `msgctxt`.
+3. Send those strings to OpenAI `gpt-5.4` for translation while preserving gettext context such as `msgctxt`.
 4. Write the translated values back into the same `.po` file.
 
 The translation API uses OpenAI `json_schema` structured outputs. Only models that support `json_schema` structured outputs are valid for `msgai`.
 
-<details>
-<summary>Supported model families</summary>
-
-- `gpt-4o`
-- `gpt-4o-mini`
-- `gpt-4.1`
-- `gpt-4.1-mini`
-- `gpt-4.1-nano`
-- `gpt-5`
-- `gpt-5-mini`
-- `gpt-5-nano`
-- `gpt-5-pro`
-- `gpt-5.1`
-- `gpt-5.2`
-- `gpt-5-codex`
-- `gpt-5.1-codex`
-- `gpt-5.1-codex-mini`
-- `gpt-5.1-codex-max`
-- `gpt-5.2-codex`
-
-Dated snapshots are accepted where the model family supports them.
-
-</details>
+Any OpenAI model that supports `json_schema` structured outputs can be used via the `--model` flag.
 
 By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
 
@@ -87,7 +65,7 @@ Options:
 - `--dry-run`: list untranslated `msgid` values only, with no API calls and no file changes
 - `--include-fuzzy`: include fuzzy entries for translation and clear their fuzzy flag after translation
 - `--source-lang LANG`: set the source language of `msgid` strings as an ISO 639-1 code such as `en` or `uk`
-- `--model MODEL`: set the OpenAI model used for translation; default is `gpt-4o`. Only models with `json_schema` structured outputs are supported.
+- `--model MODEL`: set the OpenAI model used for translation; default is `gpt-5.4`. Only models with `json_schema` structured outputs are supported.
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
 - `--fold-length N`: set PO line fold length when writing files. Use `0` to disable folding and minimize formatting-only diffs. Default: `0`
 - `--context TEXT`: additional instructions for the translation model in English, appended to the system prompt (e.g. "use formal tone", "don't translate currency names")
@@ -111,7 +89,7 @@ Example `msgai.config.yml`:
 
 ```yaml
 source-lang: en
-model: gpt-4o
+model: gpt-5.4
 include-fuzzy: false
 fold-length: 80
 context: "use formal tone"

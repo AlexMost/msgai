@@ -20,44 +20,7 @@ export type TranslateOptions = {
   context?: string;
 };
 
-const DEFAULT_MODEL = 'gpt-4o';
-const SUPPORTED_STRUCTURED_OUTPUT_MODEL_PATTERNS = [
-  /^gpt-4o(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-4o-mini(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-4\.1(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-4\.1-mini(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-4\.1-nano(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-5(?:-\d{4}-\d{2}-\d{2}|-chat-latest)?$/,
-  /^gpt-5-mini(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-5-nano(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-5-pro(?:-\d{4}-\d{2}-\d{2})?$/,
-  /^gpt-5\.1(?:-\d{4}-\d{2}-\d{2}|-chat-latest)?$/,
-  /^gpt-5\.2(?:-\d{4}-\d{2}-\d{2}|-chat-latest)?$/,
-  /^gpt-5-codex$/,
-  /^gpt-5\.1-codex$/,
-  /^gpt-5\.1-codex-mini$/,
-  /^gpt-5\.1-codex-max$/,
-  /^gpt-5\.2-codex$/,
-] as const;
-export const SUPPORTED_STRUCTURED_OUTPUT_MODELS = [
-  'gpt-4o',
-  'gpt-4o-mini',
-  'gpt-4.1',
-  'gpt-4.1-mini',
-  'gpt-4.1-nano',
-  'gpt-5',
-  'gpt-5-mini',
-  'gpt-5-nano',
-  'gpt-5-pro',
-  'gpt-5.1',
-  'gpt-5.2',
-  'gpt-5-codex',
-  'gpt-5.1-codex',
-  'gpt-5.1-codex-mini',
-  'gpt-5.1-codex-max',
-  'gpt-5.2-codex',
-] as const;
-
+const DEFAULT_MODEL = 'gpt-5.4';
 /** Error codes: https://developers.openai.com/api/docs/guides/error-codes#api-errors */
 
 const MAX_RETRIES = 3;
@@ -78,21 +41,6 @@ function isApiError(err: unknown): err is { status: number; code?: string; messa
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || status === 500 || status === 503;
-}
-
-function isSupportedStructuredOutputModel(model: string): boolean {
-  return SUPPORTED_STRUCTURED_OUTPUT_MODEL_PATTERNS.some((pattern) => pattern.test(model));
-}
-
-function validateStructuredOutputModel(model: string): void {
-  if (isSupportedStructuredOutputModel(model)) return;
-  throw new Error(
-    `Model "${model}" is not supported. This package requires an OpenAI Chat Completions model with json_schema structured outputs. Supported model families: ${SUPPORTED_STRUCTURED_OUTPUT_MODELS.join(', ')}.`,
-  );
-}
-
-export function validateModel(model: string): void {
-  validateStructuredOutputModel(model);
 }
 
 /** Request entry: either singular (msgid) or plural (msgid_plural). Optional msgctxt for gettext context. */
@@ -373,7 +321,6 @@ export async function translatePayload(
       apiKey: options.apiKey,
     });
   const model = options?.model ?? DEFAULT_MODEL;
-  validateStructuredOutputModel(model);
   debug.log('translate', 'Prepared translatePayload request summary', {
     model,
     target_language: payload.target_language,
