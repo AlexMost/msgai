@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.5.0](https://github.com/AlexMost/msgai/compare/v1.4.0...v1.5.0) (2026-03-24)
+
+### Features
+
+- switch default model to gpt-5.4 and remove hardcoded model allowlist ([c6b926c](https://github.com/AlexMost/msgai/commit/c6b926ca65d38123966df1c3abbdc7be4aa89d96))
+
+### Bug Fixes
+
+- avoid duplicate CI runs on PR branches ([b3ff614](https://github.com/AlexMost/msgai/commit/b3ff614703891ae96547f8cdd3bc40acc46743a9))
+
 ## [1.4.0](https://github.com/AlexMost/msgai/compare/v1.3.0...v1.4.0) (2026-03-16)
 
 ### Features
