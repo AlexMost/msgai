@@ -189,9 +189,7 @@ msgstr ""
   try {
     const code = await runTranslate(tempPo.poFilePath, 'fake-key');
     expect(code).toBe(1);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid request'),
-    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid request'));
     expect(consoleWarnSpy.mock.calls[0][0]).toContain('Invalid value for temperature');
   } finally {
     tempPo.cleanup();

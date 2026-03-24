@@ -249,7 +249,6 @@ test('translatePayload throws when response missing translations', async () => {
   ).rejects.toThrow(/translations/i);
 });
 
-
 test('translateItems sends items and returns translated strings in same order', async () => {
   const responsePayload = {
     translations: [
