@@ -47,7 +47,7 @@ function parseArgs(argv: string[]): CliArgs {
       })
       .option('model', {
         type: 'string',
-        description: 'OpenAI model to use for translation. Default: gpt-4o',
+        description: 'OpenAI model to use for translation. Default: gpt-5.4',
       })
       .option('fold-length', {
         type: 'number',

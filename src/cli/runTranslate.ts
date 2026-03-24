@@ -10,12 +10,7 @@ import {
   getLanguage,
   getPluralForms,
 } from '../po';
-import {
-  resolveApiKey,
-  translateStrings,
-  validateModel,
-  SUPPORTED_STRUCTURED_OUTPUT_MODELS,
-} from '../translate';
+import { resolveApiKey, translateStrings } from '../translate';
 import { validateSourceLang } from '../validate-source-lang';
 
 const TRANSLATE_BATCH_SIZE = 15;
@@ -47,6 +42,11 @@ function getApiErrorMessage(err: unknown): string | null {
         return `Quota exceeded (out of credits or usage limit). Check plan and billing: https://platform.openai.com/settings/organization/billing`;
       }
       return `Rate limit reached. Request was retried; if this persists, slow down or check https://developers.openai.com/api/docs/guides/rate-limits`;
+    case 400:
+      if (/response_format|json_schema|structured/i.test(message)) {
+        return `The specified model may not support json_schema structured outputs required by msgai. Try a compatible model like gpt-5.4. API error: ${message}`;
+      }
+      return `Invalid request: ${message}`;
     case 500:
       return `OpenAI server error. Retry later; see https://status.openai.com/`;
     case 503:
@@ -54,13 +54,6 @@ function getApiErrorMessage(err: unknown): string | null {
     default:
       return null;
   }
-}
-
-function getInvalidModelMessage(model: string): string {
-  return [
-    `Invalid --model "${model}". msgai only supports OpenAI models with json_schema structured outputs.`,
-    `Supported model families: ${SUPPORTED_STRUCTURED_OUTPUT_MODELS.join(', ')}.`,
-  ].join(' ');
 }
 
 export type TranslateCommandArgs = {
@@ -91,7 +84,7 @@ export async function runTranslate(
     debugLogger.log('cli.runTranslate', 'Starting translation run', {
       poFilePath,
       sourceLang,
-      model: model ?? 'gpt-4o',
+      model: model ?? 'gpt-5.4',
       includeFuzzy: includeFuzzy === true,
     });
     const poContent = fs.readFileSync(poFilePath, 'utf8');
@@ -210,18 +203,6 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       });
       const message = error instanceof Error ? error.message : String(error);
       console.warn(message);
-      return 1;
-    }
-  }
-
-  if (args.model != null) {
-    try {
-      validateModel(args.model);
-    } catch {
-      debugLogger.log('cli.runTranslateCommand', 'Model validation failed', {
-        model: args.model,
-      });
-      console.warn(getInvalidModelMessage(args.model));
       return 1;
     }
   }
