@@ -209,6 +209,13 @@ function normalizeMsgctxt(msgctxt: unknown): string {
   return typeof msgctxt === 'string' ? msgctxt : '';
 }
 
+class ProtectedFieldMismatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProtectedFieldMismatchError';
+  }
+}
+
 function buildProtectedFieldMismatchMessage(
   index: number,
   field: 'msgctxt' | 'msgid' | 'msgid_plural',
@@ -272,11 +279,11 @@ function parsePayloadResponse(
     const requestContext = normalizeMsgctxt(requestEntry.msgctxt);
     const responseContext = normalizeMsgctxt(entry.msgctxt);
     if (responseContext !== requestContext) {
-      throw new Error(buildProtectedFieldMismatchMessage(i, 'msgctxt'));
+      throw new ProtectedFieldMismatchError(buildProtectedFieldMismatchMessage(i, 'msgctxt'));
     }
     if ('msgid' in requestEntry) {
       if (entry.msgid !== requestEntry.msgid) {
-        throw new Error(buildProtectedFieldMismatchMessage(i, 'msgid'));
+        throw new ProtectedFieldMismatchError(buildProtectedFieldMismatchMessage(i, 'msgid'));
       }
       if ('msgid_plural' in entry) {
         throw new Error(`OpenAI response translations[${i}] must not include msgid_plural`);
@@ -286,7 +293,7 @@ function parsePayloadResponse(
       throw new Error(`OpenAI response translations[${i}].msgstr must be a string`);
     }
     if (entry.msgid_plural !== requestEntry.msgid_plural) {
-      throw new Error(buildProtectedFieldMismatchMessage(i, 'msgid_plural'));
+      throw new ProtectedFieldMismatchError(buildProtectedFieldMismatchMessage(i, 'msgid_plural'));
     }
     if ('msgid' in entry) {
       throw new Error(`OpenAI response translations[${i}] must not include msgid`);
@@ -359,14 +366,22 @@ export async function translatePayload(
       const content = response.choices[0]?.message?.content ?? null;
       return parsePayloadResponse(payload, content, { debug: options?.debug });
     } catch (err) {
-      const shouldRetry = attempt < MAX_RETRIES && isApiError(err) && isRetryableStatus(err.status);
+      const isRetryableApi = isApiError(err) && isRetryableStatus(err.status);
+      const isFieldMismatch = err instanceof ProtectedFieldMismatchError;
+      const shouldRetry = attempt < MAX_RETRIES && (isRetryableApi || isFieldMismatch);
       debug.log('translate', 'translatePayload request failed', {
         attempt: attempt + 1,
         shouldRetry,
+        isFieldMismatch,
         error: err instanceof Error ? err.message : String(err),
       });
       if (shouldRetry) {
         const delayMs = RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
+        if (isFieldMismatch) {
+          console.warn(
+            `Warning: model returned mismatched protected field (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying...`,
+          );
+        }
         debug.log('translate', 'Retrying after backoff', { delay_ms: delayMs });
         await sleep(delayMs);
         continue;

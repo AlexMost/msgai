@@ -198,6 +198,11 @@ test('translatePayload mismatch error tells user to retry and rerun with debug',
     ),
   ).rejects.toThrow(/Retry the command once/i);
 
+  // Should have retried MAX_RETRIES + 1 times before giving up
+  expect(createMock).toHaveBeenCalledTimes(4);
+
+  createMock.mockClear();
+
   await expect(
     translatePayload(
       {
@@ -209,6 +214,44 @@ test('translatePayload mismatch error tells user to retry and rerun with debug',
       { apiKey: 'test-key', client: mockClient },
     ),
   ).rejects.toThrow(/--debug/i);
+}, 15000);
+
+test('translatePayload retries on protected field mismatch then succeeds and logs warning', async () => {
+  const badResponse = mockCompletion(
+    JSON.stringify({
+      translations: [{ msgid: 'Helo', msgstr: 'Привіт' }],
+    }),
+  );
+  const goodResponse = mockCompletion(
+    JSON.stringify({
+      translations: [{ msgid: 'Hello', msgstr: 'Привіт' }],
+    }),
+  );
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValueOnce(badResponse)
+    .mockResolvedValueOnce(goodResponse);
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+
+  const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+  const result = await translatePayload(
+    {
+      formula: '',
+      target_language: 'uk',
+      source_language: 'en',
+      translations: [{ msgid: 'Hello' }],
+    },
+    { apiKey: 'test-key', client: mockClient },
+  );
+
+  expect(result.translations[0].msgstr).toBe('Привіт');
+  expect(createMock).toHaveBeenCalledTimes(2);
+  expect(warnSpy).toHaveBeenCalledWith(
+    expect.stringContaining('mismatched protected field'),
+  );
+
+  warnSpy.mockRestore();
 });
 
 test('translateStrings throws when response is not valid JSON', async () => {
