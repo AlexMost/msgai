@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.5.1](https://github.com/AlexMost/msgai/compare/v1.5.0...v1.5.1) (2026-03-24)
+
+### Bug Fixes
+
+- auto-retry on structured-output field mismatch from LLM ([5bebb43](https://github.com/AlexMost/msgai/commit/5bebb43d951df522daac283e2aaf5b221a47c8c6))
+
 ## [1.5.0](https://github.com/AlexMost/msgai/compare/v1.4.0...v1.5.0) (2026-03-24)
 
 ### Features
