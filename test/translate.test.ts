@@ -247,9 +247,7 @@ test('translatePayload retries on protected field mismatch then succeeds and log
 
   expect(result.translations[0].msgstr).toBe('Привіт');
   expect(createMock).toHaveBeenCalledTimes(2);
-  expect(warnSpy).toHaveBeenCalledWith(
-    expect.stringContaining('mismatched protected field'),
-  );
+  expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('mismatched protected field'));
 
   warnSpy.mockRestore();
 });
