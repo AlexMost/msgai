@@ -36,6 +36,11 @@ function parseArgs(argv: string[]): CliArgs {
         type: 'boolean',
         description: 'Include fuzzy entries for translation (re-translate and clear fuzzy flag)',
       })
+      .option('add-fuzzy', {
+        type: 'boolean',
+        description:
+          'Mark all newly translated entries with the gettext fuzzy flag (for human review)',
+      })
       .option('api-key', {
         type: 'string',
         description: 'OpenAI API key (otherwise read from OPENAI_API_KEY env)',
@@ -111,6 +116,7 @@ function parseArgs(argv: string[]): CliArgs {
         sourceLang,
         model,
         includeFuzzy: parsedArgs['include-fuzzy'],
+        addFuzzy: parsedArgs['add-fuzzy'],
         foldLength,
         context,
         debug: parsedArgs.debug,
@@ -175,6 +181,7 @@ function main(argv: string[]): number | undefined {
   // Default remaining undefined booleans after config merge
   const dryRun = args.dryRun ?? false;
   const includeFuzzy = args.includeFuzzy ?? false;
+  const addFuzzy = args.addFuzzy ?? false;
   const debug = args.debug ?? false;
 
   debugLogger.log('cli.main', 'Dispatching runTranslateCommand');
@@ -185,6 +192,7 @@ function main(argv: string[]): number | undefined {
     sourceLang: args.sourceLang,
     model: args.model,
     includeFuzzy,
+    addFuzzy,
     foldLength: args.foldLength,
     context: args.context,
     debug,
