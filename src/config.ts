@@ -4,6 +4,7 @@ import { parse as parseYaml } from 'yaml';
 const KEBAB_TO_CAMEL: Record<string, string> = {
   'source-lang': 'sourceLang',
   'include-fuzzy': 'includeFuzzy',
+  'add-fuzzy': 'addFuzzy',
   'fold-length': 'foldLength',
   'api-key': 'apiKey',
   'dry-run': 'dryRun',
@@ -23,6 +24,7 @@ export const configFileSchema = z
     sourceLang: z.string().optional(),
     model: z.string().optional(),
     includeFuzzy: z.boolean().optional(),
+    addFuzzy: z.boolean().optional(),
     foldLength: z
       .number()
       .int('foldLength must be an integer')
@@ -56,6 +58,7 @@ export type ConfigFile = {
   sourceLang?: string;
   model?: string;
   includeFuzzy?: boolean;
+  addFuzzy?: boolean;
   foldLength?: number;
   context?: string;
   debug?: boolean;
@@ -80,6 +83,7 @@ export type CliArgs = {
   sourceLang?: string;
   model?: string;
   includeFuzzy?: boolean;
+  addFuzzy?: boolean;
   foldLength?: number;
   context?: string;
   debug?: boolean;
@@ -96,6 +100,7 @@ export function mergeConfigWithArgs(
     sourceLang: cliArgs.sourceLang !== undefined ? cliArgs.sourceLang : config.sourceLang,
     model: cliArgs.model !== undefined ? cliArgs.model : config.model,
     includeFuzzy: cliArgs.includeFuzzy !== undefined ? cliArgs.includeFuzzy : config.includeFuzzy,
+    addFuzzy: cliArgs.addFuzzy !== undefined ? cliArgs.addFuzzy : config.addFuzzy,
     foldLength: cliArgs.foldLength !== undefined ? cliArgs.foldLength : config.foldLength,
     context: cliArgs.context !== undefined ? cliArgs.context : config.context,
     debug: cliArgs.debug !== undefined ? cliArgs.debug : config.debug,

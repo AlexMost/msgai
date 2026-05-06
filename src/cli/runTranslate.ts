@@ -6,6 +6,8 @@ import {
   getEntriesToTranslate,
   applyTranslations,
   clearFuzzyFromEntries,
+  addFuzzyToEntries,
+  markEntriesAsAiTranslated,
   compilePo,
   getLanguage,
   getPluralForms,
@@ -63,6 +65,7 @@ export type TranslateCommandArgs = {
   sourceLang?: string;
   model?: string;
   includeFuzzy?: boolean;
+  addFuzzy?: boolean;
   foldLength?: number;
   debug?: boolean;
   context?: string;
@@ -74,6 +77,7 @@ export async function runTranslate(
   sourceLang?: string,
   model?: string,
   includeFuzzy?: boolean,
+  addFuzzy?: boolean,
   foldLength?: number,
   debug?: boolean,
   context?: string,
@@ -86,6 +90,7 @@ export async function runTranslate(
       sourceLang,
       model: model ?? 'gpt-5.4',
       includeFuzzy: includeFuzzy === true,
+      addFuzzy: addFuzzy === true,
     });
     const poContent = fs.readFileSync(poFilePath, 'utf8');
     debugLogger.log('cli.runTranslate', 'Read PO file', {
@@ -158,6 +163,10 @@ export async function runTranslate(
       if (includeFuzzy) {
         clearFuzzyFromEntries(parsedPo, batchResults);
       }
+      markEntriesAsAiTranslated(parsedPo, batchResults);
+      if (addFuzzy) {
+        addFuzzyToEntries(parsedPo, batchResults);
+      }
       fs.writeFileSync(poFilePath, compilePo(parsedPo, { foldLength }));
       debugLogger.log('cli.runTranslate', 'Wrote translated batch back to PO file', {
         batch: batchNum,
@@ -182,7 +191,7 @@ export async function runTranslate(
 }
 
 export const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--add-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   initDebugLogger(args.debug);
@@ -228,6 +237,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       args.sourceLang,
       args.model,
       args.includeFuzzy,
+      args.addFuzzy,
       args.foldLength,
       args.debug,
       args.context,

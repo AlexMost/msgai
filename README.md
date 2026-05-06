@@ -14,6 +14,7 @@ Main features:
 - `🏷️` Respects gettext context (`msgctxt`) when translating entries
 - `🔁` Supports singular and plural translations
 - `⚠️` Skips fuzzy entries by default
+- `🪪` Marks every AI translation with a `# ai-translated` translator comment
 - `🧭` Can infer source language or use `--source-lang`
 - `💻` Runs as a small CLI that updates files in place
 
@@ -29,6 +30,8 @@ The translation API uses OpenAI `json_schema` structured outputs. Only models th
 Any OpenAI model that supports `json_schema` structured outputs can be used via the `--model` flag.
 
 By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
+
+Every entry that `msgai` translates gets a `# ai-translated` translator comment so you can tell AI translations apart from human ones. Existing translator comments are preserved. Use `--add-fuzzy` to additionally mark fresh translations with the gettext `fuzzy` flag — useful when you want a human to review every AI translation before it ships.
 
 ## 📦 Install
 
@@ -57,13 +60,14 @@ msgai messages.po --api-key sk-...
 Usage:
 
 ```bash
-msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]
+msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--add-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]
 ```
 
 Options:
 
 - `--dry-run`: list untranslated `msgid` values only, with no API calls and no file changes
 - `--include-fuzzy`: include fuzzy entries for translation and clear their fuzzy flag after translation
+- `--add-fuzzy`: mark every newly translated entry with the gettext `fuzzy` flag (so a human reviews it before it ships). Independent of `--include-fuzzy`
 - `--source-lang LANG`: set the source language of `msgid` strings as an ISO 639-1 code such as `en` or `uk`
 - `--model MODEL`: set the OpenAI model used for translation; default is `gpt-5.4`. Only models with `json_schema` structured outputs are supported.
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
@@ -91,6 +95,7 @@ Example `msgai.config.yml`:
 source-lang: en
 model: gpt-5.4
 include-fuzzy: false
+add-fuzzy: false
 fold-length: 80
 context: "use formal tone"
 debug: false

@@ -137,6 +137,72 @@ export function applyTranslations(parsedPo: GetTextTranslations, results: PoEntr
   }
 }
 
+const AI_TRANSLATED_MARKER = 'ai-translated';
+
+/**
+ * Adds an "ai-translated" translator comment to entries corresponding to the given results.
+ * Idempotent: skips entries that already contain the marker. Preserves existing translator
+ * comments by appending the marker on a new line.
+ */
+export function markEntriesAsAiTranslated(
+  parsedPo: GetTextTranslations,
+  results: Array<{ msgid: string; msgctxt?: string }>,
+): void {
+  for (const result of results) {
+    const context = result.msgctxt ?? '';
+    const contextEntries = parsedPo.translations[context];
+    if (contextEntries == null) continue;
+    const entry = contextEntries[result.msgid];
+    if (entry == null) continue;
+
+    if (entry.comments == null) {
+      entry.comments = {};
+    }
+    const existing = entry.comments.translator;
+    if (typeof existing === 'string' && existing.length > 0) {
+      const lines = existing.split(/\r?\n|\r/).map((s) => s.trim());
+      if (lines.includes(AI_TRANSLATED_MARKER)) continue;
+      entry.comments.translator = `${existing}\n${AI_TRANSLATED_MARKER}`;
+    } else {
+      entry.comments.translator = AI_TRANSLATED_MARKER;
+    }
+  }
+}
+
+/**
+ * Adds the "fuzzy" flag to entries corresponding to the given results (mutates parsedPo.translations).
+ * Idempotent: does not duplicate the flag. Preserves other flags (e.g. "c-format").
+ * Lookup is by result.msgctxt (default '') and result.msgid.
+ */
+export function addFuzzyToEntries(
+  parsedPo: GetTextTranslations,
+  results: Array<{ msgid: string; msgctxt?: string }>,
+): void {
+  for (const result of results) {
+    const context = result.msgctxt ?? '';
+    const contextEntries = parsedPo.translations[context];
+    if (contextEntries == null) continue;
+    const entry = contextEntries[result.msgid];
+    if (entry == null) continue;
+
+    if (entry.comments == null) {
+      entry.comments = {};
+    }
+    const existing = entry.comments.flag;
+    if (typeof existing === 'string' && existing.length > 0) {
+      const flags = existing
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s !== '');
+      if (flags.some((f) => f.toLowerCase() === 'fuzzy')) continue;
+      flags.push('fuzzy');
+      entry.comments.flag = flags.join(', ');
+    } else {
+      entry.comments.flag = 'fuzzy';
+    }
+  }
+}
+
 /**
  * Removes the "fuzzy" flag from entries corresponding to the given results (mutates parsedPo.translations).
  * Lookup is by result.msgctxt (default '') and result.msgid.

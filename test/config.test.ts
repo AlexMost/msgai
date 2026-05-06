@@ -7,6 +7,7 @@ describe('parseConfigFile', () => {
 sourceLang: en
 model: gpt-4o
 includeFuzzy: true
+addFuzzy: true
 foldLength: 80
 context: "use formal tone"
 debug: true
@@ -16,6 +17,7 @@ debug: true
       sourceLang: 'en',
       model: 'gpt-4o',
       includeFuzzy: true,
+      addFuzzy: true,
       foldLength: 80,
       context: 'use formal tone',
       debug: true,
@@ -26,12 +28,14 @@ debug: true
     const yaml = `
 source-lang: uk
 include-fuzzy: false
+add-fuzzy: true
 fold-length: 0
 `;
     const result = parseConfigFile(yaml);
     expect(result).toEqual({
       sourceLang: 'uk',
       includeFuzzy: false,
+      addFuzzy: true,
       foldLength: 0,
     });
   });
