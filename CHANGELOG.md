@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [2.0.0](https://github.com/AlexMost/msgai/compare/v1.6.0...v2.0.0) (2026-11-13)
+
+### ⚠ BREAKING CHANGES
+
+- **deps:** Node.js 22 or newer is now required (openai SDK v7 dropped Node.js 20).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+### build
+
+- **deps:** upgrade openai SDK to v7 and refresh dependencies ([46b1926](https://github.com/AlexMost/msgai/commit/46b19265aad404ccfc54ba35fd5cded70f9fed94))
+
+### Features
+
+- default to gpt-6.1-sol translation model ([fe883c2](https://github.com/AlexMost/msgai/commit/fe883c2f36576bf7e7f2e51fd28206b8e00dfd38))
+- default to gpt-6.1-terra translation model ([d341aaf](https://github.com/AlexMost/msgai/commit/d341aaf51fe5f29e86645db3b675d57de8db63fa))
+- support OpenAI-compatible base URL (--base-url, config, OPENAI_BASE_URL) ([524fdac](https://github.com/AlexMost/msgai/commit/524fdacf38ff64156c6e27d3919a243fd12f848c))
+
+### Bug Fixes
+
+- honor --add-fuzzy flag when a single .po file is passed ([3849640](https://github.com/AlexMost/msgai/commit/38496401a6238cdeed2ad079a9c14a37bc6db3a6))
+
 ## [1.6.0](https://github.com/AlexMost/msgai/compare/v1.5.1...v1.6.0) (2026-05-06)
 
 ### Features
