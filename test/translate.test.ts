@@ -7,6 +7,7 @@ import {
   buildSystemMessage,
   createOpenAIClient,
   resolveBaseUrl,
+  DEFAULT_MODEL,
 } from '../src/translate';
 
 const mockCompletion = (content: string) => ({
@@ -633,4 +634,51 @@ describe('resolveBaseUrl', () => {
   test('trims surrounding whitespace', () => {
     expect(resolveBaseUrl('  https://cli.example.com/v1  ')).toBe('https://cli.example.com/v1');
   });
+});
+
+test('DEFAULT_MODEL is gpt-6.1-terra', () => {
+  expect(DEFAULT_MODEL).toBe('gpt-6.1-terra');
+});
+
+function singleHiResponseClient() {
+  const createMock = jest
+    .fn<(params: unknown) => Promise<unknown>>()
+    .mockResolvedValue(
+      mockCompletion(JSON.stringify({ translations: [{ msgid: 'Hi', msgstr: 'Привіт' }] })),
+    );
+  const mockClient = { chat: { completions: { create: createMock } } } as unknown as OpenAI;
+  return { createMock, mockClient };
+}
+
+const hiPayload = {
+  formula: '',
+  target_language: 'uk',
+  source_language: 'en',
+  translations: [{ msgid: 'Hi' }],
+};
+
+test('translatePayload with default model sends reasoning_effort none and temperature 0', async () => {
+  const { createMock, mockClient } = singleHiResponseClient();
+
+  await translatePayload(hiPayload, { apiKey: 'test-key', client: mockClient });
+
+  const params = createMock.mock.calls[0]?.[0] as Record<string, unknown>;
+  expect(params['model']).toBe('gpt-6.1-terra');
+  expect(params['reasoning_effort']).toBe('none');
+  expect(params['temperature']).toBe(0);
+});
+
+test('translatePayload with a custom model sends neither temperature nor reasoning_effort', async () => {
+  const { createMock, mockClient } = singleHiResponseClient();
+
+  await translatePayload(hiPayload, {
+    apiKey: 'test-key',
+    client: mockClient,
+    model: 'gpt-6.1-sol',
+  });
+
+  const params = createMock.mock.calls[0]?.[0] as Record<string, unknown>;
+  expect(params['model']).toBe('gpt-6.1-sol');
+  expect(params).not.toHaveProperty('reasoning_effort');
+  expect(params).not.toHaveProperty('temperature');
 });

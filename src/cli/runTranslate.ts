@@ -12,7 +12,7 @@ import {
   getLanguage,
   getPluralForms,
 } from '../po';
-import { resolveApiKey, resolveBaseUrl, translateStrings } from '../translate';
+import { DEFAULT_MODEL, resolveApiKey, resolveBaseUrl, translateStrings } from '../translate';
 import { validateSourceLang } from '../validate-source-lang';
 
 const TRANSLATE_BATCH_SIZE = 15;
@@ -49,7 +49,7 @@ function getApiErrorMessage(err: unknown, baseURL?: string): string | null {
       return `Rate limit reached. Request was retried; if this persists, slow down or check https://developers.openai.com/api/docs/guides/rate-limits`;
     case 400:
       if (/response_format|json_schema|structured/i.test(message)) {
-        return `The specified model may not support json_schema structured outputs required by msgai. Try a compatible model like gpt-5.4. API error: ${message}`;
+        return `The specified model may not support json_schema structured outputs required by msgai. Try a compatible model like ${DEFAULT_MODEL}. API error: ${message}`;
       }
       return `Invalid request: ${message}`;
     case 500:
@@ -109,7 +109,7 @@ export async function runTranslate(
     debugLogger.log('cli.runTranslate', 'Starting translation run', {
       poFilePath,
       sourceLang,
-      model: model ?? 'gpt-5.4',
+      model: model ?? DEFAULT_MODEL,
       includeFuzzy: includeFuzzy === true,
       addFuzzy: addFuzzy === true,
       baseURL: baseURL ?? null,

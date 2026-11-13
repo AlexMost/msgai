@@ -5,6 +5,7 @@ import { hideBin } from 'yargs/helpers';
 import { getDebugLogger, initDebugLogger } from '../debug';
 import { CliArgs, mergeConfigWithArgs } from '../config';
 import { loadConfigFile } from './loadConfig';
+import { DEFAULT_MODEL } from '../translate';
 import { runTranslateCommand, USAGE } from './runTranslate';
 
 function normalizeFoldLength(value: unknown): number | undefined {
@@ -57,7 +58,7 @@ function parseArgs(argv: string[]): CliArgs {
       })
       .option('model', {
         type: 'string',
-        description: 'OpenAI model to use for translation. Default: gpt-5.4',
+        description: `OpenAI model to use for translation. Default: ${DEFAULT_MODEL}`,
       })
       .option('fold-length', {
         type: 'number',

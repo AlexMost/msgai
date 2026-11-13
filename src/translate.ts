@@ -34,7 +34,12 @@ export type TranslateOptions = {
   context?: string;
 };
 
-const DEFAULT_MODEL = 'gpt-5.4';
+/**
+ * Default translation model. Chosen from the GPT-6 family per
+ * https://developers.openai.com/api/docs/models (Chat Completions + Structured Outputs,
+ * supports reasoning_effort "none", which is required to keep temperature: 0).
+ */
+export const DEFAULT_MODEL = 'gpt-6.1-terra';
 /** Error codes: https://developers.openai.com/api/docs/guides/error-codes#api-errors */
 
 const MAX_RETRIES = 3;
@@ -354,9 +359,14 @@ export async function translatePayload(
     plural_samples: payload.plural_samples?.length ?? 0,
   });
   debug.log('translate', 'translatePayload request payload', payload);
+  // GPT-6 models accept temperature only with reasoning_effort "none". We know the default model
+  // supports that; for user-chosen models (possibly behind a proxy alias) we send neither and let
+  // the model use its own defaults, so any Structured Outputs-capable model works.
+  const samplingParams =
+    model === DEFAULT_MODEL ? { reasoning_effort: 'none' as const, temperature: 0 } : {};
   const requestParams = {
     model,
-    temperature: 0,
+    ...samplingParams,
     response_format: {
       type: 'json_schema' as const,
       json_schema: TRANSLATION_RESPONSE_SCHEMA,
