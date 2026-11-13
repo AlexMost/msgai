@@ -53,7 +53,7 @@ test('translatePayload sends request with msgid only and receives response with 
     messages: Array<{ role: string; content?: string }>;
   };
   const params = createMock.mock.calls[0]?.[0] as CreateParams;
-  expect(params.temperature).toBe(0);
+  expect(params.temperature).toBeUndefined();
   expect(params.response_format).toMatchObject({
     type: 'json_schema',
     json_schema: {
@@ -636,8 +636,8 @@ describe('resolveBaseUrl', () => {
   });
 });
 
-test('DEFAULT_MODEL is gpt-6.1-terra', () => {
-  expect(DEFAULT_MODEL).toBe('gpt-6.1-terra');
+test('DEFAULT_MODEL is gpt-6.1-sol', () => {
+  expect(DEFAULT_MODEL).toBe('gpt-6.1-sol');
 });
 
 function singleHiResponseClient() {
@@ -657,15 +657,15 @@ const hiPayload = {
   translations: [{ msgid: 'Hi' }],
 };
 
-test('translatePayload with default model sends reasoning_effort none and temperature 0', async () => {
+test('translatePayload with default model sends reasoning_effort low and no temperature', async () => {
   const { createMock, mockClient } = singleHiResponseClient();
 
   await translatePayload(hiPayload, { apiKey: 'test-key', client: mockClient });
 
   const params = createMock.mock.calls[0]?.[0] as Record<string, unknown>;
-  expect(params['model']).toBe('gpt-6.1-terra');
-  expect(params['reasoning_effort']).toBe('none');
-  expect(params['temperature']).toBe(0);
+  expect(params['model']).toBe('gpt-6.1-sol');
+  expect(params['reasoning_effort']).toBe('low');
+  expect(params).not.toHaveProperty('temperature');
 });
 
 test('translatePayload with a custom model sends neither temperature nor reasoning_effort', async () => {
@@ -674,11 +674,11 @@ test('translatePayload with a custom model sends neither temperature nor reasoni
   await translatePayload(hiPayload, {
     apiKey: 'test-key',
     client: mockClient,
-    model: 'gpt-6.1-sol',
+    model: 'gpt-6-luna',
   });
 
   const params = createMock.mock.calls[0]?.[0] as Record<string, unknown>;
-  expect(params['model']).toBe('gpt-6.1-sol');
+  expect(params['model']).toBe('gpt-6-luna');
   expect(params).not.toHaveProperty('reasoning_effort');
   expect(params).not.toHaveProperty('temperature');
 });

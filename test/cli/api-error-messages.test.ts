@@ -173,7 +173,7 @@ msgstr ""
     expect(consoleWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining('may not support json_schema structured outputs'),
     );
-    expect(consoleWarnSpy.mock.calls[0][0]).toContain('gpt-6.1-terra');
+    expect(consoleWarnSpy.mock.calls[0][0]).toContain('gpt-6.1-sol');
   } finally {
     tempPo.cleanup();
   }
