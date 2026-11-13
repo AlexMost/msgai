@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm install          # Install dependencies (Node.js 20+, npm 10+)
+npm install          # Install dependencies (Node.js 22+, npm 10+)
 npm run build        # TypeScript → dist/
 npm test             # Build + run unit tests (Jest)
 npm run test:integration  # Real API tests (requires OPENAI_API_KEY, costs money — ask before running)

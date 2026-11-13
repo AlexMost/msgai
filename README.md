@@ -113,7 +113,7 @@ On API failures such as rate limits, quota issues, or server errors, the CLI exi
 
 Requirements:
 
-- Node.js `20+`
+- Node.js `22+`
 - npm `10+`
 
 Install dependencies:
