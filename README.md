@@ -10,7 +10,8 @@ Main features:
 
 - `📝` Works directly with gettext `.po` files
 - `🤖` Translates only untranslated entries using AI
-- `🧠` Uses OpenAI `gpt-5.4` by default for translation
+- `🧠` Uses OpenAI `gpt-6.1-terra` by default for translation
+- `🔌` Works with any OpenAI-compatible API (e.g. a LiteLLM proxy) via `--base-url`
 - `🏷️` Respects gettext context (`msgctxt`) when translating entries
 - `🔁` Supports singular and plural translations
 - `⚠️` Skips fuzzy entries by default
@@ -22,12 +23,14 @@ Main features:
 
 1. Read the `.po` file and parse its entries.
 2. Find entries with empty or missing translations.
-3. Send those strings to OpenAI `gpt-5.4` for translation while preserving gettext context such as `msgctxt`.
+3. Send those strings to OpenAI `gpt-6.1-terra` for translation while preserving gettext context such as `msgctxt`.
 4. Write the translated values back into the same `.po` file.
 
 The translation API uses OpenAI `json_schema` structured outputs. Only models that support `json_schema` structured outputs are valid for `msgai`.
 
 Any OpenAI model that supports `json_schema` structured outputs can be used via the `--model` flag.
+
+For the default model, `msgai` requests `reasoning_effort: "none"` with `temperature: 0` for fast, stable translations. When you choose a different model with `--model` (or `model` in the config file), `msgai` sends neither parameter, so the model's own defaults apply. This keeps any structured-outputs model working, including ones that reject `temperature` or `reasoning_effort`.
 
 By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
 
@@ -55,12 +58,40 @@ msgai messages.po --api-key sk-...
 
 `OPENAI_API_KEY` can be loaded from your environment or from a `.env` file in the current directory.
 
+### OpenAI-compatible APIs (LiteLLM and other proxies)
+
+By default `msgai` talks to the OpenAI API. To use an OpenAI-compatible endpoint, such as a [LiteLLM](https://docs.litellm.ai/) proxy, set its base URL. `msgai` takes the first value it finds, in this order:
+
+1. `--base-url URL` CLI flag
+2. `base-url` in `msgai.config.yml`
+3. `OPENAI_BASE_URL` environment variable (or `.env` file in the current directory)
+4. the OpenAI API (`https://api.openai.com/v1`)
+
+The base URL must be an `http(s)` URL, usually ending in `/v1`. The API key is still read from `--api-key` or `OPENAI_API_KEY`; use the key issued by your proxy.
+
+Example with a LiteLLM proxy:
+
+```bash
+export OPENAI_BASE_URL=https://litellm.example.com/v1
+export OPENAI_API_KEY=sk-litellm-...   # LiteLLM virtual key
+msgai messages.po --model gpt-6.1-terra
+```
+
+Or in a `.env` file:
+
+```dotenv
+OPENAI_BASE_URL=https://litellm.example.com/v1
+OPENAI_API_KEY=sk-litellm-...
+```
+
+`--model` must be a model name your proxy exposes, and that model must support `json_schema` structured outputs.
+
 ## 💻 CLI Usage
 
 Usage:
 
 ```bash
-msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--add-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]
+msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--base-url URL] [--model MODEL] [--include-fuzzy] [--add-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]
 ```
 
 Options:
@@ -69,8 +100,9 @@ Options:
 - `--include-fuzzy`: include fuzzy entries for translation and clear their fuzzy flag after translation
 - `--add-fuzzy`: mark every newly translated entry with the gettext `fuzzy` flag (so a human reviews it before it ships). Independent of `--include-fuzzy`
 - `--source-lang LANG`: set the source language of `msgid` strings as an ISO 639-1 code such as `en` or `uk`
-- `--model MODEL`: set the OpenAI model used for translation; default is `gpt-5.4`. Only models with `json_schema` structured outputs are supported.
+- `--model MODEL`: set the OpenAI model used for translation; default is `gpt-6.1-terra`. Only models with `json_schema` structured outputs are supported.
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
+- `--base-url URL`: use an OpenAI-compatible API (e.g. a LiteLLM proxy) instead of the OpenAI API; otherwise read from `OPENAI_BASE_URL`. See [OpenAI-compatible APIs](#openai-compatible-apis-litellm-and-other-proxies)
 - `--fold-length N`: set PO line fold length when writing files. Use `0` to disable folding and minimize formatting-only diffs. Default: `0`
 - `--context TEXT`: additional instructions for the translation model in English, appended to the system prompt (e.g. "use formal tone", "don't translate currency names")
 - `--config PATH`: path to a YAML config file (default: `msgai.config.yml` in current directory)
@@ -93,7 +125,8 @@ Example `msgai.config.yml`:
 
 ```yaml
 source-lang: en
-model: gpt-5.4
+model: gpt-6.1-terra
+base-url: https://litellm.example.com/v1
 include-fuzzy: false
 add-fuzzy: false
 fold-length: 80
