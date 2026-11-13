@@ -10,7 +10,7 @@ Main features:
 
 - `📝` Works directly with gettext `.po` files
 - `🤖` Translates only untranslated entries using AI
-- `🧠` Uses OpenAI `gpt-6.1-terra` by default for translation
+- `🧠` Uses OpenAI `gpt-6.1-sol` by default for translation
 - `🔌` Works with any OpenAI-compatible API (e.g. a LiteLLM proxy) via `--base-url`
 - `🏷️` Respects gettext context (`msgctxt`) when translating entries
 - `🔁` Supports singular and plural translations
@@ -23,14 +23,14 @@ Main features:
 
 1. Read the `.po` file and parse its entries.
 2. Find entries with empty or missing translations.
-3. Send those strings to OpenAI `gpt-6.1-terra` for translation while preserving gettext context such as `msgctxt`.
+3. Send those strings to OpenAI `gpt-6.1-sol` for translation while preserving gettext context such as `msgctxt`.
 4. Write the translated values back into the same `.po` file.
 
 The translation API uses OpenAI `json_schema` structured outputs. Only models that support `json_schema` structured outputs are valid for `msgai`.
 
 Any OpenAI model that supports `json_schema` structured outputs can be used via the `--model` flag.
 
-For the default model, `msgai` requests `reasoning_effort: "none"` with `temperature: 0` for fast, stable translations. When you choose a different model with `--model` (or `model` in the config file), `msgai` sends neither parameter, so the model's own defaults apply. This keeps any structured-outputs model working, including ones that reject `temperature` or `reasoning_effort`.
+For the default model, `msgai` requests `reasoning_effort: "low"` (the lowest effort `gpt-6.1-sol` supports) for fast translations. `temperature` is never sent, because GPT-6 models reject it unless reasoning effort is `none`. When you choose a different model with `--model` (or `model` in the config file), `msgai` does not send `reasoning_effort` either, so the model's own defaults apply. This keeps any structured-outputs model working, including ones that reject `reasoning_effort`.
 
 By default, entries marked as `fuzzy` are skipped. If you use `--include-fuzzy`, `msgai` will translate those entries too and remove the fuzzy flag after applying the result.
 
@@ -74,7 +74,7 @@ Example with a LiteLLM proxy:
 ```bash
 export OPENAI_BASE_URL=https://litellm.example.com/v1
 export OPENAI_API_KEY=sk-litellm-...   # LiteLLM virtual key
-msgai messages.po --model gpt-6.1-terra
+msgai messages.po --model gpt-6.1-sol
 ```
 
 Or in a `.env` file:
@@ -100,7 +100,7 @@ Options:
 - `--include-fuzzy`: include fuzzy entries for translation and clear their fuzzy flag after translation
 - `--add-fuzzy`: mark every newly translated entry with the gettext `fuzzy` flag (so a human reviews it before it ships). Independent of `--include-fuzzy`
 - `--source-lang LANG`: set the source language of `msgid` strings as an ISO 639-1 code such as `en` or `uk`
-- `--model MODEL`: set the OpenAI model used for translation; default is `gpt-6.1-terra`. Only models with `json_schema` structured outputs are supported.
+- `--model MODEL`: set the OpenAI model used for translation; default is `gpt-6.1-sol`. Only models with `json_schema` structured outputs are supported.
 - `--api-key KEY`: pass the OpenAI API key directly instead of using `OPENAI_API_KEY`
 - `--base-url URL`: use an OpenAI-compatible API (e.g. a LiteLLM proxy) instead of the OpenAI API; otherwise read from `OPENAI_BASE_URL`. See [OpenAI-compatible APIs](#openai-compatible-apis-litellm-and-other-proxies)
 - `--fold-length N`: set PO line fold length when writing files. Use `0` to disable folding and minimize formatting-only diffs. Default: `0`
@@ -125,7 +125,7 @@ Example `msgai.config.yml`:
 
 ```yaml
 source-lang: en
-model: gpt-6.1-terra
+model: gpt-6.1-sol
 base-url: https://litellm.example.com/v1
 include-fuzzy: false
 add-fuzzy: false

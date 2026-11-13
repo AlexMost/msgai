@@ -35,11 +35,13 @@ export type TranslateOptions = {
 };
 
 /**
- * Default translation model. Chosen from the GPT-6 family per
- * https://developers.openai.com/api/docs/models (Chat Completions + Structured Outputs,
- * supports reasoning_effort "none", which is required to keep temperature: 0).
+ * Default translation model, from the GPT-6 family per
+ * https://developers.openai.com/api/docs/models/gpt-6.1-sol (Chat Completions + Structured
+ * Outputs). It does not support reasoning_effort "none", so it cannot take temperature.
  */
-export const DEFAULT_MODEL = 'gpt-6.1-terra';
+export const DEFAULT_MODEL = 'gpt-6.1-sol';
+/** Lowest reasoning effort gpt-6.1-sol supports; OpenAI recommends "low" in place of "none". */
+const DEFAULT_MODEL_REASONING_EFFORT = 'low' as const;
 /** Error codes: https://developers.openai.com/api/docs/guides/error-codes#api-errors */
 
 const MAX_RETRIES = 3;
@@ -359,11 +361,12 @@ export async function translatePayload(
     plural_samples: payload.plural_samples?.length ?? 0,
   });
   debug.log('translate', 'translatePayload request payload', payload);
-  // GPT-6 models accept temperature only with reasoning_effort "none". We know the default model
-  // supports that; for user-chosen models (possibly behind a proxy alias) we send neither and let
-  // the model use its own defaults, so any Structured Outputs-capable model works.
+  // The default model gets the lowest reasoning effort it supports, for fast translations.
+  // GPT-6 models reject temperature unless reasoning_effort is "none", so it is never sent.
+  // For user-chosen models (possibly behind a proxy alias) we send no reasoning_effort either and
+  // let the model use its own defaults, so any Structured Outputs-capable model works.
   const samplingParams =
-    model === DEFAULT_MODEL ? { reasoning_effort: 'none' as const, temperature: 0 } : {};
+    model === DEFAULT_MODEL ? { reasoning_effort: DEFAULT_MODEL_REASONING_EFFORT } : {};
   const requestParams = {
     model,
     ...samplingParams,
