@@ -8,6 +8,7 @@ const KEBAB_TO_CAMEL: Record<string, string> = {
   'fold-length': 'foldLength',
   'api-key': 'apiKey',
   'dry-run': 'dryRun',
+  'base-url': 'baseUrl',
 };
 
 function normalizeKeys(obj: Record<string, unknown>): Record<string, unknown> {
@@ -32,6 +33,7 @@ export const configFileSchema = z
       .optional(),
     context: z.string().optional(),
     debug: z.boolean().optional(),
+    baseUrl: z.string().optional(),
     apiKey: z
       .any()
       .refine((val) => val === undefined, {
@@ -62,6 +64,7 @@ export type ConfigFile = {
   foldLength?: number;
   context?: string;
   debug?: boolean;
+  baseUrl?: string;
 };
 
 export function parseConfigFile(content: string): ConfigFile {
@@ -87,6 +90,7 @@ export type CliArgs = {
   foldLength?: number;
   context?: string;
   debug?: boolean;
+  baseUrl?: string;
   config?: string;
   error?: string;
 };
@@ -104,5 +108,6 @@ export function mergeConfigWithArgs(
     foldLength: cliArgs.foldLength !== undefined ? cliArgs.foldLength : config.foldLength,
     context: cliArgs.context !== undefined ? cliArgs.context : config.context,
     debug: cliArgs.debug !== undefined ? cliArgs.debug : config.debug,
+    baseUrl: cliArgs.baseUrl !== undefined ? cliArgs.baseUrl : config.baseUrl,
   };
 }

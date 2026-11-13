@@ -12,8 +12,22 @@ export function resolveApiKey(apiKey?: string): string {
   );
 }
 
+/**
+ * Resolve the OpenAI-compatible API base URL: explicit value (CLI flag or config file) first,
+ * then OPENAI_BASE_URL from the environment / .env. Returns undefined to use the SDK default.
+ */
+export function resolveBaseUrl(baseURL?: string): string | undefined {
+  loadEnv();
+  if (baseURL != null && baseURL.trim() !== '') return baseURL.trim();
+  const env = process.env['OPENAI_BASE_URL'];
+  if (env != null && env.trim() !== '') return env.trim();
+  return undefined;
+}
+
 export type TranslateOptions = {
   apiKey: string;
+  /** OpenAI-compatible API base URL (e.g. a LiteLLM proxy). Defaults to the OpenAI API. */
+  baseURL?: string;
   client?: OpenAI;
   model?: string;
   debug?: boolean;
@@ -25,6 +39,13 @@ const DEFAULT_MODEL = 'gpt-5.4';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [1000, 2000, 4000];
+
+export function createOpenAIClient(options: { apiKey: string; baseURL?: string }): OpenAI {
+  return new OpenAI({
+    apiKey: options.apiKey,
+    ...(options.baseURL != null ? { baseURL: options.baseURL } : {}),
+  });
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,8 +66,7 @@ function isRetryableStatus(status: number): boolean {
 
 /** Request entry: either singular (msgid) or plural (msgid_plural). Optional msgctxt for gettext context. */
 export type TranslateRequestEntry =
-  | { msgid: string; msgctxt?: string }
-  | { msgid_plural: string; msgctxt?: string };
+  { msgid: string; msgctxt?: string } | { msgid_plural: string; msgctxt?: string };
 
 /** Response entry: same keys as request plus msgstr. For msgid → msgstr is string; for msgid_plural → msgstr is string[]. */
 export type TranslateResponseEntry =
@@ -323,13 +343,11 @@ export async function translatePayload(
   const debug = getDebugLogger();
 
   const client =
-    options?.client ??
-    new OpenAI({
-      apiKey: options.apiKey,
-    });
+    options?.client ?? createOpenAIClient({ apiKey: options.apiKey, baseURL: options.baseURL });
   const model = options?.model ?? DEFAULT_MODEL;
   debug.log('translate', 'Prepared translatePayload request summary', {
     model,
+    base_url: options.baseURL ?? null,
     target_language: payload.target_language,
     source_language: payload.source_language,
     translation_count: payload.translations.length,

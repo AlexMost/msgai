@@ -1,10 +1,12 @@
-import { test, expect, jest } from '@jest/globals';
+import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import type OpenAI from 'openai';
 import {
   translateStrings,
   translateItems,
   translatePayload,
   buildSystemMessage,
+  createOpenAIClient,
+  resolveBaseUrl,
 } from '../src/translate';
 
 const mockCompletion = (content: string) => ({
@@ -577,4 +579,58 @@ test('translatePayload passes context to system message', async () => {
   const systemContent = params.messages.find((m) => m.role === 'system')?.content ?? '';
   expect(systemContent).toContain('Project-specific instructions');
   expect(systemContent).toContain('use formal tone');
+});
+
+test('createOpenAIClient passes baseURL to the OpenAI client', () => {
+  const client = createOpenAIClient({
+    apiKey: 'test-key',
+    baseURL: 'https://litellm.example.com/v1',
+  });
+
+  expect(client.baseURL).toBe('https://litellm.example.com/v1');
+  expect(client.apiKey).toBe('test-key');
+});
+
+test('createOpenAIClient falls back to the SDK default base URL when baseURL is not set', () => {
+  const saved = process.env['OPENAI_BASE_URL'];
+  delete process.env['OPENAI_BASE_URL'];
+  try {
+    const client = createOpenAIClient({ apiKey: 'test-key' });
+    expect(client.baseURL).toBe('https://api.openai.com/v1');
+  } finally {
+    if (saved !== undefined) process.env['OPENAI_BASE_URL'] = saved;
+  }
+});
+
+describe('resolveBaseUrl', () => {
+  let saved: string | undefined;
+
+  beforeEach(() => {
+    saved = process.env['OPENAI_BASE_URL'];
+    delete process.env['OPENAI_BASE_URL'];
+  });
+
+  afterEach(() => {
+    if (saved === undefined) delete process.env['OPENAI_BASE_URL'];
+    else process.env['OPENAI_BASE_URL'] = saved;
+  });
+
+  test('returns the explicit value when provided', () => {
+    process.env['OPENAI_BASE_URL'] = 'https://env.example.com/v1';
+    expect(resolveBaseUrl('https://cli.example.com/v1')).toBe('https://cli.example.com/v1');
+  });
+
+  test('falls back to OPENAI_BASE_URL from the environment', () => {
+    process.env['OPENAI_BASE_URL'] = 'https://env.example.com/v1';
+    expect(resolveBaseUrl()).toBe('https://env.example.com/v1');
+  });
+
+  test('ignores empty values and returns undefined when nothing is set', () => {
+    process.env['OPENAI_BASE_URL'] = '   ';
+    expect(resolveBaseUrl('  ')).toBeUndefined();
+  });
+
+  test('trims surrounding whitespace', () => {
+    expect(resolveBaseUrl('  https://cli.example.com/v1  ')).toBe('https://cli.example.com/v1');
+  });
 });

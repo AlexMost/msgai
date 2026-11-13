@@ -12,7 +12,7 @@ import {
   getLanguage,
   getPluralForms,
 } from '../po';
-import { resolveApiKey, translateStrings } from '../translate';
+import { resolveApiKey, resolveBaseUrl, translateStrings } from '../translate';
 import { validateSourceLang } from '../validate-source-lang';
 
 const TRANSLATE_BATCH_SIZE = 15;
@@ -28,7 +28,7 @@ function isApiError(err: unknown): err is ApiErrorLike {
   );
 }
 
-function getApiErrorMessage(err: unknown): string | null {
+function getApiErrorMessage(err: unknown, baseURL?: string): string | null {
   if (!isApiError(err)) return null;
   const status = err.status;
   const code = err.code;
@@ -36,6 +36,9 @@ function getApiErrorMessage(err: unknown): string | null {
 
   switch (status) {
     case 401:
+      if (baseURL != null) {
+        return `Invalid or missing API key for ${baseURL}. Set OPENAI_API_KEY or use --api-key with a key issued by that API server.`;
+      }
       return `Invalid or missing API key. Set OPENAI_API_KEY or use --api-key. Check key at https://platform.openai.com/settings/organization/api-keys`;
     case 403:
       return `API not available in your country/region. See https://developers.openai.com/api/docs/supported-countries`;
@@ -69,7 +72,24 @@ export type TranslateCommandArgs = {
   foldLength?: number;
   debug?: boolean;
   context?: string;
+  baseUrl?: string;
 };
+
+function validateBaseUrl(baseURL: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(baseURL);
+  } catch {
+    throw new Error(
+      `Invalid base URL: ${baseURL}. Expected an http(s) URL, e.g. https://litellm.example.com/v1`,
+    );
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(
+      `Invalid base URL: ${baseURL}. Expected an http(s) URL, e.g. https://litellm.example.com/v1`,
+    );
+  }
+}
 
 export async function runTranslate(
   poFilePath: string,
@@ -81,6 +101,7 @@ export async function runTranslate(
   foldLength?: number,
   debug?: boolean,
   context?: string,
+  baseURL?: string,
 ): Promise<number> {
   initDebugLogger(debug);
   const debugLogger = getDebugLogger();
@@ -91,6 +112,7 @@ export async function runTranslate(
       model: model ?? 'gpt-5.4',
       includeFuzzy: includeFuzzy === true,
       addFuzzy: addFuzzy === true,
+      baseURL: baseURL ?? null,
     });
     const poContent = fs.readFileSync(poFilePath, 'utf8');
     debugLogger.log('cli.runTranslate', 'Read PO file', {
@@ -118,6 +140,7 @@ export async function runTranslate(
     }
     const options = {
       apiKey,
+      baseURL,
       sourceLanguage: sourceLang,
       formula,
       pluralSamples,
@@ -179,7 +202,7 @@ export async function runTranslate(
     debugLogger.log('cli.runTranslate', 'Translation run failed', {
       error: error instanceof Error ? error.message : String(error),
     });
-    const apiMessage = getApiErrorMessage(error);
+    const apiMessage = getApiErrorMessage(error, baseURL);
     if (apiMessage != null) {
       console.warn(apiMessage);
       return 1;
@@ -191,7 +214,7 @@ export async function runTranslate(
 }
 
 export const USAGE =
-  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--model MODEL] [--include-fuzzy] [--add-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]';
+  'Usage: msgai <file.po> [--dry-run] [--api-key KEY] [--source-lang LANG] [--base-url URL] [--model MODEL] [--include-fuzzy] [--add-fuzzy] [--fold-length N] [--context TEXT] [--config PATH] [--debug]';
 
 export function runTranslateCommand(args: TranslateCommandArgs): number | Promise<number> {
   initDebugLogger(args.debug);
@@ -231,6 +254,24 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       console.warn(message.replace('pass apiKey in options', 'pass --api-key'));
       return 1;
     }
+    const baseURL = resolveBaseUrl(args.baseUrl);
+    if (baseURL != null) {
+      try {
+        validateBaseUrl(baseURL);
+      } catch (error) {
+        console.warn(error instanceof Error ? error.message : String(error));
+        return 1;
+      }
+    }
+    debugLogger.log('cli.runTranslateCommand', 'Resolved API base URL', {
+      baseURL: baseURL ?? null,
+      source:
+        args.baseUrl != null && args.baseUrl.trim() !== ''
+          ? 'cli-arg-or-config'
+          : baseURL != null
+            ? 'env'
+            : 'sdk-default',
+    });
     return runTranslate(
       args.poFilePath,
       resultApiKey,
@@ -241,6 +282,7 @@ export function runTranslateCommand(args: TranslateCommandArgs): number | Promis
       args.foldLength,
       args.debug,
       args.context,
+      baseURL,
     );
   }
 

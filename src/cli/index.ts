@@ -45,6 +45,11 @@ function parseArgs(argv: string[]): CliArgs {
         type: 'string',
         description: 'OpenAI API key (otherwise read from OPENAI_API_KEY env)',
       })
+      .option('base-url', {
+        type: 'string',
+        description:
+          'OpenAI-compatible API base URL, e.g. a LiteLLM proxy (otherwise read from OPENAI_BASE_URL env)',
+      })
       .option('source-lang', {
         type: 'string',
         description:
@@ -104,6 +109,12 @@ function parseArgs(argv: string[]): CliArgs {
         ? String(contextRaw).trim()
         : undefined;
 
+    const baseUrlRaw = parsedArgs['base-url'];
+    const baseUrl =
+      baseUrlRaw != null && String(baseUrlRaw).trim() !== ''
+        ? String(baseUrlRaw).trim()
+        : undefined;
+
     const configRaw = parsedArgs.config;
     const config =
       configRaw != null && String(configRaw).trim() !== '' ? String(configRaw).trim() : undefined;
@@ -120,6 +131,7 @@ function parseArgs(argv: string[]): CliArgs {
         foldLength,
         context,
         debug: parsedArgs.debug,
+        baseUrl,
         config,
         error: `Unexpected argument: ${positionalArgs[1]}`,
       };
@@ -137,6 +149,7 @@ function parseArgs(argv: string[]): CliArgs {
       foldLength,
       context,
       debug: parsedArgs.debug,
+      baseUrl,
       config,
     };
     return result;
@@ -196,6 +209,7 @@ function main(argv: string[]): number | undefined {
     foldLength: args.foldLength,
     context: args.context,
     debug,
+    baseUrl: args.baseUrl,
   });
 
   if (result instanceof Promise) {
