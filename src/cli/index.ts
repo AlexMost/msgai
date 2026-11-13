@@ -147,6 +147,7 @@ function parseArgs(argv: string[]): CliArgs {
       sourceLang,
       model,
       includeFuzzy: parsedArgs['include-fuzzy'],
+      addFuzzy: parsedArgs['add-fuzzy'],
       foldLength,
       context,
       debug: parsedArgs.debug,
