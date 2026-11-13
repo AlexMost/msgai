@@ -11,6 +11,7 @@ addFuzzy: true
 foldLength: 80
 context: "use formal tone"
 debug: true
+baseUrl: https://litellm.example.com/v1
 `;
     const result = parseConfigFile(yaml);
     expect(result).toEqual({
@@ -21,6 +22,7 @@ debug: true
       foldLength: 80,
       context: 'use formal tone',
       debug: true,
+      baseUrl: 'https://litellm.example.com/v1',
     });
   });
 
@@ -102,7 +104,30 @@ fold-length: 0
   });
 });
 
+describe('parseConfigFile base-url', () => {
+  test('normalizes base-url (kebab-case) to baseUrl', () => {
+    const result = parseConfigFile('base-url: https://litellm.example.com/v1\n');
+    expect(result).toEqual({ baseUrl: 'https://litellm.example.com/v1' });
+  });
+
+  test('rejects non-string base-url', () => {
+    expect(() => parseConfigFile('base-url: 42\n')).toThrow();
+  });
+});
+
 describe('mergeConfigWithArgs', () => {
+  test('CLI baseUrl overrides config baseUrl', () => {
+    const config = { baseUrl: 'https://config.example.com/v1' };
+    const result = mergeConfigWithArgs(config, { baseUrl: 'https://cli.example.com/v1' });
+    expect(result.baseUrl).toBe('https://cli.example.com/v1');
+  });
+
+  test('config baseUrl used when CLI baseUrl is undefined', () => {
+    const config = { baseUrl: 'https://config.example.com/v1' };
+    const result = mergeConfigWithArgs(config, {});
+    expect(result.baseUrl).toBe('https://config.example.com/v1');
+  });
+
   test('CLI arg overrides config value', () => {
     const config = { sourceLang: 'en', model: 'gpt-4o' };
     const cliArgs = { sourceLang: 'uk' };

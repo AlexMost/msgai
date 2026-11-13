@@ -12,19 +12,45 @@ export function resolveApiKey(apiKey?: string): string {
   );
 }
 
+/**
+ * Resolve the OpenAI-compatible API base URL: explicit value (CLI flag or config file) first,
+ * then OPENAI_BASE_URL from the environment / .env. Returns undefined to use the SDK default.
+ */
+export function resolveBaseUrl(baseURL?: string): string | undefined {
+  loadEnv();
+  if (baseURL != null && baseURL.trim() !== '') return baseURL.trim();
+  const env = process.env['OPENAI_BASE_URL'];
+  if (env != null && env.trim() !== '') return env.trim();
+  return undefined;
+}
+
 export type TranslateOptions = {
   apiKey: string;
+  /** OpenAI-compatible API base URL (e.g. a LiteLLM proxy). Defaults to the OpenAI API. */
+  baseURL?: string;
   client?: OpenAI;
   model?: string;
   debug?: boolean;
   context?: string;
 };
 
-const DEFAULT_MODEL = 'gpt-5.4';
+/**
+ * Default translation model. Chosen from the GPT-6 family per
+ * https://developers.openai.com/api/docs/models (Chat Completions + Structured Outputs,
+ * supports reasoning_effort "none", which is required to keep temperature: 0).
+ */
+export const DEFAULT_MODEL = 'gpt-6.1-terra';
 /** Error codes: https://developers.openai.com/api/docs/guides/error-codes#api-errors */
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [1000, 2000, 4000];
+
+export function createOpenAIClient(options: { apiKey: string; baseURL?: string }): OpenAI {
+  return new OpenAI({
+    apiKey: options.apiKey,
+    ...(options.baseURL != null ? { baseURL: options.baseURL } : {}),
+  });
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,8 +71,7 @@ function isRetryableStatus(status: number): boolean {
 
 /** Request entry: either singular (msgid) or plural (msgid_plural). Optional msgctxt for gettext context. */
 export type TranslateRequestEntry =
-  | { msgid: string; msgctxt?: string }
-  | { msgid_plural: string; msgctxt?: string };
+  { msgid: string; msgctxt?: string } | { msgid_plural: string; msgctxt?: string };
 
 /** Response entry: same keys as request plus msgstr. For msgid → msgstr is string; for msgid_plural → msgstr is string[]. */
 export type TranslateResponseEntry =
@@ -323,22 +348,25 @@ export async function translatePayload(
   const debug = getDebugLogger();
 
   const client =
-    options?.client ??
-    new OpenAI({
-      apiKey: options.apiKey,
-    });
+    options?.client ?? createOpenAIClient({ apiKey: options.apiKey, baseURL: options.baseURL });
   const model = options?.model ?? DEFAULT_MODEL;
   debug.log('translate', 'Prepared translatePayload request summary', {
     model,
+    base_url: options.baseURL ?? null,
     target_language: payload.target_language,
     source_language: payload.source_language,
     translation_count: payload.translations.length,
     plural_samples: payload.plural_samples?.length ?? 0,
   });
   debug.log('translate', 'translatePayload request payload', payload);
+  // GPT-6 models accept temperature only with reasoning_effort "none". We know the default model
+  // supports that; for user-chosen models (possibly behind a proxy alias) we send neither and let
+  // the model use its own defaults, so any Structured Outputs-capable model works.
+  const samplingParams =
+    model === DEFAULT_MODEL ? { reasoning_effort: 'none' as const, temperature: 0 } : {};
   const requestParams = {
     model,
-    temperature: 0,
+    ...samplingParams,
     response_format: {
       type: 'json_schema' as const,
       json_schema: TRANSLATION_RESPONSE_SCHEMA,

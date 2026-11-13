@@ -35,7 +35,7 @@
     "i18n"
   ],
   "engines": {
-    "node": ">=20",
+    "node": ">=22",
     "npm": ">=10"
   },
   "files": [
@@ -58,29 +58,29 @@
     }
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@babel/preset-env": "^7.29.0",
+    "@babel/core": "^7.29.13",
+    "@babel/preset-env": "^7.29.14",
     "@eslint/js": "^10.0.1",
     "@types/gettext-parser": "^9.0.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.9.9",
     "babel-jest": "^30.2.0",
-    "commit-and-tag-version": "^12.6.1",
-    "eslint": "^10.0.2",
-    "jest": "^30.2.0",
-    "prettier": "^3.8.1",
-    "ts-jest": "^29.4.6",
+    "commit-and-tag-version": "^12.7.3",
+    "eslint": "^10.14.0",
+    "jest": "^30.5.2",
+    "prettier": "^3.10.1",
+    "ts-jest": "^29.4.15",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1"
+    "typescript-eslint": "^8.72.2"
   },
   "dependencies": {
-    "dotenv": "^17.3.1",
-    "gettext-parser": "^9.0.1",
-    "openai": "^6.25.0",
+    "dotenv": "^18.0.10",
+    "gettext-parser": "^9.1.1",
+    "openai": "^7.56.0",
     "plural-forms": "^0.5.5",
-    "yaml": "^2.8.2",
-    "yargs": "^18.0.0",
-    "zod": "^4.3.6"
+    "yaml": "^2.9.1",
+    "yargs": "^18.2.0",
+    "zod": "^4.6.7"
   }
 }
